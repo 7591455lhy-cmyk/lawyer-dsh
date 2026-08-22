@@ -1,0 +1,8 @@
+# lawyer-sidebar 的 patch overlay（配合 `pnpm dsh web --patch` 使用）。
+# 前置：先把本包安装进 web profile，使 name 可从 profile 目录解析：
+#   pnpm --dir d:/codes/deepseek-harness dsh plugin --profile web add file:///d:/codes/lawyer-dsh/plugins/lawyer-sidebar
+# 启动：
+#   pnpm --dir d:/codes/deepseek-harness dsh web --patch d:/codes/lawyer-dsh/plugins/lawyer-sidebar/cordis.yml
+- insert:
+  - id: lawyer-sidebar
+    name: lawyer-sidebar
