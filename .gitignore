@@ -1,5 +1,42 @@
-﻿.codebuddy/
+﻿# ===== 依赖目录（最大头，永远不要提交）=====
 node_modules/
+.pnpm-store/
+
+# ===== 构建产物 =====
 dist/
+build/
+out/
+*.tsbuildinfo
+
+# ===== 打包产物（M5 Electron 会生成）=====
+release/
+*.exe
+*.msi
+*.nupkg
+
+# ===== 环境与密钥（重要！API Key 绝不能进仓库）=====
+.env
+.env.*
+*.key
+*.pem
+
+# ===== 日志与临时文件 =====
 *.log
+logs/
+tmp/
+*.tmp
+
+# ===== 工具自身的数据 =====
+.codebuddy/
 .dsh/
+.vscode/
+.idea/
+
+# ===== 系统垃圾文件 =====
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# ===== 测试/调试残留 =====
+coverage/
+smoke-test*

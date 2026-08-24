@@ -23,6 +23,7 @@ const EXTERNALS = new Set([
   '@deepseek-ai/dsh-client-ui-slots',
   '@deepseek-ai/dsh-client-ui-primitives',
   '@deepseek-ai/dsh-client-runtime/client',
+  '@deepseek-ai/dsh-api-remotes/client',
 ])
 
 /** 以本配置文件所在目录为锚的绝对路径（tsdown 的 cwd 可能是别的目录）。 */

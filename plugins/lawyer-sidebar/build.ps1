@@ -43,6 +43,7 @@ $clientArgs = @(
   '--external:@deepseek-ai/dsh-client-ui-slots',
   '--external:@deepseek-ai/dsh-client-ui-primitives',
   '--external:@deepseek-ai/dsh-client-runtime/client',
+  '--external:@deepseek-ai/dsh-api-remotes/client',
   '--sourcemap',
   ('--outfile=' + (Join-Path $plugin 'lib\client.js')),
   '--banner:js=window.__ModuleLoader__.load({ id: \"lawyer-sidebar\", factory: (require) => { var module = { exports: {} }; var exports = module.exports;',

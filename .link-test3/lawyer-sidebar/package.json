@@ -1,6 +1,6 @@
 {
   "name": "lawyer-sidebar",
-  "version": "0.1.0",
+  "version": "0.5.0",
   "description": "律师工作台侧边栏功能入口（合同审核）",
   "type": "module",
   "main": "lib/index.js",
