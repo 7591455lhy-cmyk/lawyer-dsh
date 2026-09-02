@@ -1,4 +1,0 @@
-摸鱼工作站 0.80（无演示数据）
-
-Windows 安装包：摸鱼工作站-Setup-0.80.exe（174.9 MB）
-SHA256: ea3a49966f8c08bf153dc7877ed6b0f910b421ec9d9d2730cc04526dfcb6db48

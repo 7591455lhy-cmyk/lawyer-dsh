@@ -46,6 +46,13 @@ git grep -nIE 'sk-[A-Za-z0-9]{20,}|YUANDIAN_API_KEY\s*=' -- .
 体积红线：单个文件 **100MB 硬上限**，超过 50MB 会有警告。本仓库源码约 4MB，
 安装包走 Release 资产（**不计入仓库容量**，单资产上限 2GB）。
 
+> **坑：GitHub 会剥掉 Release 资产名里的非 ASCII 字符。**
+> 上传 `摸鱼工作站-Setup-0.80.exe` 之后，资产名会变成 `-Setup-0.80.exe`
+> （中文被整段删掉，不是替换成连字符）。因此上传时用 ASCII 名
+> （如 `MoyuWorkbench-Setup-0.80.exe`），并在 Release 正文里说明一句；
+> 本地构建产物保持中文名即可。同理，`--notes-file` 的正文里可以写中文，
+> 但资产文件名不要指望非 ASCII 能留住。
+
 ## 二、主仓 lawyer-dsh
 
 远端分支是 `master`（不是 main），别建错分支。

@@ -8,11 +8,16 @@
 
 | 文件 | 大小 | SHA256 |
 | --- | --- | --- |
-| `摸鱼工作站-Setup-0.80.exe` | 174.9 MB | `ea3a49966f8c08bf153dc7877ed6b0f910b421ec9d9d2730cc04526dfcb6db48` |
+| `MoyuWorkbench-Setup-0.80.exe` | 174.9 MB | `ea3a49966f8c08bf153dc7877ed6b0f910b421ec9d9d2730cc04526dfcb6db48` |
 
 ```powershell
-certutil -hashfile 摸鱼工作站-Setup-0.80.exe SHA256
+certutil -hashfile MoyuWorkbench-Setup-0.80.exe SHA256
 ```
+
+> **关于文件名**：GitHub 会剥掉 Release 资产名里的非 ASCII 字符，所以这里上传的
+> 名字是 ASCII 的 `MoyuWorkbench-Setup-0.80.exe`；安装程序本身仍是中文界面与
+> 「摸鱼工作站」产品名，下载后随意改名不影响安装。本地构建产物
+> （`packaging/dist/`）依然是 `摸鱼工作站-Setup-0.80.exe`。
 
 > 只要右侧栏、不需要桌面壳？用插件版：
 > [lawyer-sidebar 仓库](https://github.com/7591455lhy-cmyk/lawyer-sidebar) 的

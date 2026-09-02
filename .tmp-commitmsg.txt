@@ -1,3 +1,5 @@
-docs: 更新 app-v0.80 发布说明的安装包 SHA256
+docs: Release 资产改用 ASCII 名并记下 GitHub 的命名坑
 
-重新出包后校验值变化（安装包内容含时间戳，非逐字节可重现）。
+GitHub 上传 Release 资产时会剥掉文件名里的非 ASCII 字符（摸鱼工作站-Setup-0.80.exe
+变成 -Setup-0.80.exe），故上传名改为 MoyuWorkbench-Setup-0.80.exe；本地构建
+产物与安装程序界面仍是中文。同时清掉临时脚本。
