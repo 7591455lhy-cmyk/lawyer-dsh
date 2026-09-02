@@ -1,0 +1,6 @@
+docs: 记录 M8.9 GitHub 公开发布与四个新坑
+
+两个仓库两条 Release 轨道：lawyer-dsh（app-v0.80，安装包）与 lawyer-sidebar
+（plugin-v0.80，插件包）。同时记录实测踩到的四个坑：GitHub 剥非 ASCII 资产名、
+命令行中文导致提交信息乱码、bsdtar 按本机码页写 zip 条目名、公开后资产匿名
+下载的 404 缓存窗口。
