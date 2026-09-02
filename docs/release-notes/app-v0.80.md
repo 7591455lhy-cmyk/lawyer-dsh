@@ -8,7 +8,7 @@
 
 | 文件 | 大小 | SHA256 |
 | --- | --- | --- |
-| `摸鱼工作站-Setup-0.80.exe` | 174.9 MB | `a6b72e9dc2a9a095ce85b34d4dbdea2b268d76b2a88245fd89ca0943328d2a4b` |
+| `摸鱼工作站-Setup-0.80.exe` | 174.9 MB | `ea3a49966f8c08bf153dc7877ed6b0f910b421ec9d9d2730cc04526dfcb6db48` |
 
 ```powershell
 certutil -hashfile 摸鱼工作站-Setup-0.80.exe SHA256
