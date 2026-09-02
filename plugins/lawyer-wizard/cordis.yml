@@ -1,0 +1,20 @@
+# lawyer-dsh 的 patch overlay（配合 `dsh web --patch` 使用；与 lawyer-sidebar/cordis.yml
+# 等价，律师三插件的自包含入口，任选一个作为 --patch 目标）。
+# 前置：先把插件包安装进 web profile，使 name 可从 profile 目录解析（路径换成
+# 你本机的实际位置；Windows 下 file:// 必须是三斜杠的 file:/// 协议格式）：
+#   pnpm --dir <deepseek-harness> dsh plugin --profile web add file:///<lawyer-dsh>/plugins/lawyer-wizard
+# 并部署 lawyer preset（详见项目根 debug-web.cmd，一键完成上述步骤）。
+- insert:
+  - id: lawyer-sidebar
+    name: lawyer-sidebar
+  # Host 工具插件：注册 skills/ 目录技能 + lawyerFiles 上传服务 + lawyer-workbench
+  # 设置分节（M4：入口配置持久化到 $DSH_HOME/settings.yaml）。
+  - id: lawyer-tools
+    name: lawyer-tools
+    config:
+      # 改成你本机 skills/ 目录的绝对路径（律师技能由它注册；留占位符时
+      # Host 会警告「缺少 skillsDir」并跳过技能注册，其它功能不受影响）。
+      skillsDir: <lawyer-dsh 仓库绝对路径>/skills
+  # M4：配置引导（首启向导 + 入口管理面板）。
+  - id: lawyer-wizard
+    name: lawyer-wizard

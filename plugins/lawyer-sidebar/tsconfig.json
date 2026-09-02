@@ -27,6 +27,9 @@
       "@deepseek-ai/dsh-client-ui-sidebar/client": [
         "../../../deepseek-harness/packages/client/ui-sidebar/src/client/index.ts"
       ],
+      "@deepseek-ai/dsh-client-ui-conversation/client": [
+        "../../../deepseek-harness/packages/client/ui-conversation/src/client/index.ts"
+      ],
       "@deepseek-ai/dsh-client-ui-primitives": [
         "../../../deepseek-harness/packages/client/ui-primitives/src/index.ts"
       ],

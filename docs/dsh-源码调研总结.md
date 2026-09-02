@@ -78,7 +78,7 @@ await session.prompt([{ type: 'text', text: '请对以下合同进行审核...' 
 **一次性准备**：
 
 ```sh
-cd d:\codes\deepseek-harness
+cd <deepseek-harness 仓库路径>
 pnpm install && pnpm run build   # 准备 Host/Client/Web 全部产物
 ```
 
@@ -92,7 +92,7 @@ pnpm install && pnpm run build   # 准备 Host/Client/Web 全部产物
 
 ```sh
 # deepseek-harness 目录下
-pnpm dsh web --patch d:/codes/lawyer-dsh/plugins/lawyer-sidebar/cordis.yml
+pnpm dsh web --patch <lawyer-dsh 仓库路径>/plugins/lawyer-sidebar/cordis.yml
 # patch 内容：- insert: - id: lawyer-sidebar, name: <包名>
 # 浏览器打开 http://127.0.0.1:3080
 ```

@@ -1,0 +1,35 @@
+{
+  // 编辑器类型辅助：把 @deepseek-ai/* 与 react 的类型指到 deepseek-harness 源码/依赖上。
+  // 构建不依赖本文件（esbuild/tsdown 不做类型检查）；版本号升级后需同步 paths。
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "allowImportingTsExtensions": true,
+    "types": [],
+    "paths": {
+      "react": [
+        "../../../deepseek-harness/node_modules/.pnpm/@types+react@18.3.31/node_modules/@types/react"
+      ],
+      "react/jsx-runtime": [
+        "../../../deepseek-harness/node_modules/.pnpm/@types+react@18.3.31/node_modules/@types/react/jsx-runtime"
+      ],
+      "@deepseek-ai/dsh-client-runtime/client": [
+        "../../../deepseek-harness/packages/client/runtime/src/client/index.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-layout/client": [
+        "../../../deepseek-harness/packages/client/ui-layout/src/client/index.ts"
+      ],
+      "@deepseek-ai/dsh-api-remotes/client": [
+        "../../../deepseek-harness/packages/api/remotes/src/client/index.ts"
+      ]
+    }
+  },
+  "include": [
+    "src"
+  ]
+}

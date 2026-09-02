@@ -37,6 +37,29 @@ Thumbs.db
 .DS_Store
 desktop.ini
 
+# ===== 打包可重建产物 =====
+# packaging/ 下另有自己的 .gitignore：runtime/（约 310MB，node + dsh +
+# profile-web + legal-zh + 工作台数据）、dist/（约 444MB，安装包）、
+# .cache/（约 36MB 下载缓存）—— 全部可由 prepare-runtime / dist 重建。
+
+# build/ 是上面的通用规则，但 packaging/build 是 electron-builder 的
+# buildResources（icon.png）——漏了它，别人克隆仓库后出包没有图标。
+!packaging/build/
+
 # ===== 测试/调试残留 =====
 coverage/
 smoke-test*
+# smoke-*.ps1 与 .check-*.mjs 自检脚本产出的临时 bundle（跑完可重建）
+.smoke-*.mjs
+# smoke-dump-config.ps1 造的临时 DSH_HOME（含本机绝对路径，绝不能入库）
+.smoke-home/
+.smoke-files/
+.check-*.mjs
+# 上一条把常驻自检脚本本身也一起忽略了 —— 它们是发布前必跑的校验，必须入库
+!.check-pkg.mjs
+!.check-nodemo.mjs
+!.check-demo-build.mjs
+!.check-portal.mjs
+
+# ===== 早期 pnpm 装配实验残留（.link-test / .link-test2 / .link-test3）=====
+.link-test*/

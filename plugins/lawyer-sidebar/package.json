@@ -1,7 +1,7 @@
 {
   "name": "lawyer-sidebar",
-  "version": "0.5.0",
-  "description": "律师工作台侧边栏功能入口（合同审核）",
+  "version": "0.80.0",
+  "description": "律师工作台侧边栏功能入口（合同审核 / 案件分析 / 文书生成 / 实务画像，内接 claude-for-legal-ZH 中国法规范）",
   "type": "module",
   "main": "lib/index.js",
   "exports": {

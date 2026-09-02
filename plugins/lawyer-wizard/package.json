@@ -1,0 +1,24 @@
+{
+  "name": "lawyer-wizard",
+  "version": "0.80.0",
+  "description": "律师工作台配置引导（Client 插件）：首启向导 + 功能入口管理（新增/删除/重排自定义入口），持久化到 $DSH_HOME/settings.yaml 的 lawyer-workbench 分节",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib"
+  ],
+  "dsh": {
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-runtime",
+        "@deepseek-ai/dsh-client-ui-layout"
+      ]
+    }
+  }
+}

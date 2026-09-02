@@ -1,7 +1,7 @@
 {
   "name": "lawyer-tools",
-  "version": "0.2.0",
-  "description": "律师工作台 Host 工具插件：把 skills 目录下的技能（SKILL.md）注册进 dsh 技能注册表",
+  "version": "0.80.0",
+  "description": "律师工作台 Host 工具插件：注册 skills 目录下的技能，并提供实务画像（lawyerProfile）、文件上传（lawyerFiles）与元典凭据（lawyerSecrets）三个 RPC 服务",
   "type": "module",
   "main": "lib/index.js",
   "exports": {

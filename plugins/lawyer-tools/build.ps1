@@ -3,11 +3,24 @@
 #
 # 用法：powershell -ExecutionPolicy Bypass -File build.ps1
 param(
-  # deepseek-harness 仓库根目录（提供 esbuild 工具链）
-  [string]$Harness = 'd:\codes\deepseek-harness'
+  # deepseek-harness 仓库根目录（提供 esbuild 工具链）。
+  # 默认自动探测：lawyer-dsh 同级的 deepseek-harness（本脚本向上三级）；
+  # 目录布局不同时可显式传 -Harness <路径>
+  [string]$Harness = ''
 )
 
 $ErrorActionPreference = 'Stop'
+
+# --- 定位 harness：未显式指定时按并排布局自动探测 ---
+if (-not $Harness) {
+  $root = Split-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) -Parent
+  $candidate = Join-Path $root 'deepseek-harness'
+  if (Test-Path (Join-Path $candidate 'package.json')) {
+    $Harness = $candidate
+  } else {
+    throw "deepseek-harness not found at '$candidate'. Keep deepseek-harness next to lawyer-dsh, or pass -Harness <path>."
+  }
+}
 $plugin = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 # --- 定位 esbuild 可执行文件 ---
@@ -32,9 +45,13 @@ if ($null -eq $esbuild) {
 }
 Write-Host "esbuild: $esbuild"
 
-# --- Host 半：ESM transpile（import 原样保留）---
+# --- Host 半：ESM bundle（本地模块打进产物；yaml 等包依赖保持 external，
+# 由 profile 的 node_modules 解析。注意不能纯 transpile：src/ 不随包发布，
+# lib/index.js 里保留 './settings-schema.ts' 之类的相对导入会在安装后
+# ERR_MODULE_NOT_FOUND）---
 $nodeArgs = @(
   (Join-Path $plugin 'src\index.ts'),
+  '--bundle', '--packages=external',
   '--format=esm', '--platform=node', '--target=es2022',
   ('--outfile=' + (Join-Path $plugin 'lib\index.js'))
 )

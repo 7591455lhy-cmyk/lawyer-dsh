@@ -7,7 +7,7 @@
  * 见 deepseek-harness/packages/client/web/src/platform.ts）。
  *
  * 用 deepseek-harness 工具链构建（本包自身无 devDependencies）：
- *   pnpm --dir d:/codes/deepseek-harness exec tsdown --config <本文件绝对路径>
+ *   pnpm --dir <deepseek-harness 仓库路径> exec tsdown --config <本文件绝对路径>
  */
 import { fileURLToPath } from 'node:url'
 

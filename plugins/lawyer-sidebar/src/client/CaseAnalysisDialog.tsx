@@ -2,14 +2,18 @@
  * 案件分析发起表单（悬浮窗，M3）。
  *
  * 收集：我方立场 / 分析侧重（六模块勾选，默认全开）/ 案件材料（FilePicker：
- * 起诉状、合同、证据、聊天记录等均可）。提交后由 client/index.ts 复用/新建
+ * 起诉状、合同、证据、聊天记录等均可）。提交后由 client/index.ts 新建
  * 律师模式会话并注入 /case-analysis 手势指令与附件。
  */
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import {
   EMPTY_FILE_PICKER_VALUE, FilePicker, type FilePickerValue,
 } from './FilePicker.tsx'
 import type { FilePickerPropsLike } from './ContractReviewDialog.tsx'
+// 编译期常量：由 build.ps1 的 --define:__LAWYER_DEMO__=true|false 注入
+// （-NoDemo 出无演示数据版本）。见 ContractReviewDialog.tsx 的同名声明。
+declare const __LAWYER_DEMO__: boolean
+import { CASE_ANALYSIS_DEMO } from './demoData.ts'
 
 /** 分析模块键（与 case-analysis SKILL.md 的分析流程一一对应）。 */
 export type AnalysisFocus = 'facts' | 'relations' | 'issues' | 'evidence' | 'claims' | 'risk'
@@ -22,6 +26,8 @@ export interface CaseAnalysisRequest {
   readonly paths: readonly string[]
   readonly images: FilePickerValue['images']
   readonly texts: FilePickerValue['texts']
+  /** 演示回放标记（M6.3）：载入演示数据后提交 = 直接展示预录成果。 */
+  readonly demoReplay?: boolean
 }
 
 /** 立场选项（决定风险评估视角）。 */
@@ -48,6 +54,11 @@ interface CaseAnalysisDialogProps {
   readonly onSubmit: (request: CaseAnalysisRequest) => void
   readonly searchWorkspaceFiles: FilePickerPropsLike['searchWorkspaceFiles']
   readonly uploadWorkspaceFile: FilePickerPropsLike['uploadWorkspaceFile']
+  /**
+   * M8：实务画像入口（由父组件渲染后传入，点击打开画像配置面板）。
+   * 传节点而非回调，是为了让三个表单共用同一块 UI 而不各自引入画像状态。
+   */
+  readonly profileEntry?: ReactNode
 }
 
 /** 案件分析发起表单：悬浮窗。 */
@@ -56,11 +67,32 @@ export function CaseAnalysisDialog({
   onSubmit,
   searchWorkspaceFiles,
   uploadWorkspaceFile,
+  profileEntry,
 }: CaseAnalysisDialogProps) {
   const [stance, setStance] = useState<string>(STANCE_OPTIONS[0])
   const [focus, setFocus] = useState<readonly AnalysisFocus[]>(FOCUS_OPTIONS.map(option => option.key))
   const [files, setFiles] = useState<FilePickerValue>(EMPTY_FILE_PICKER_VALUE)
   const [busy, setBusy] = useState(false)
+  /** 载入演示数据后的提示文案（空串即未载入）。 */
+  const [demoNotice, setDemoNotice] = useState('')
+  /** 演示回放开关（载入演示数据即 armed；提交走预录成果回放）。 */
+  const [demoArmed, setDemoArmed] = useState(false)
+  /** 提交按钮的「（演示回放）」后缀：见 ContractReviewDialog.tsx 的同款注释。 */
+  const replaySuffix = __LAWYER_DEMO__ && demoArmed ? '（演示回放）' : ''
+
+  /**
+   * 一键载入演示数据（覆盖当前已填内容）。三份案情材料（起诉状 + 合同
+   * 条款与对账记录 + 微信记录与往来函件）以文本材料形态内嵌，载入后
+   * 直接点击"开始分析"即可产出六模块完整分析报告。
+   */
+  // 条件表达式而非函数体内 if：见 ContractReviewDialog.tsx 的同款注释。
+  const loadDemo: (() => void) | undefined = __LAWYER_DEMO__ ? (): void => {
+    setStance(CASE_ANALYSIS_DEMO.stance)
+    setFocus(CASE_ANALYSIS_DEMO.focus)
+    setFiles({ paths: [], images: [], texts: CASE_ANALYSIS_DEMO.texts })
+    setDemoArmed(true)
+    setDemoNotice(`已载入「${CASE_ANALYSIS_DEMO.label}」，点击"开始分析"将直接展示预录成果`)
+  } : undefined
 
   const toggleFocus = (key: AnalysisFocus, checked: boolean): void => {
     setFocus(current => checked
@@ -76,6 +108,7 @@ export function CaseAnalysisDialog({
       paths: files.paths,
       images: files.images,
       texts: files.texts,
+      ...(demoArmed ? { demoReplay: true } : {}),
     })
   }
 
@@ -100,6 +133,21 @@ export function CaseAnalysisDialog({
             ✕
           </button>
         </div>
+
+        {__LAWYER_DEMO__ && (
+          <div className="lawyer-dialog__demo">
+            <button
+              type="button"
+              className="lawyer-dialog__demo-btn"
+              onClick={loadDemo}
+              disabled={busy}
+              title={`填充演示数据（${CASE_ANALYSIS_DEMO.label}）——覆盖当前已填内容，载入后可直接开始分析`}
+            >
+              ⚡ 载入演示数据
+            </button>
+            {demoNotice !== '' && <span className="lawyer-dialog__demo-hint">{demoNotice}</span>}
+          </div>
+        )}
 
         <label className="lawyer-dialog__label" htmlFor="lawyer-case-stance">我方立场</label>
         <select
@@ -132,7 +180,7 @@ export function CaseAnalysisDialog({
 
         <FilePicker
           label="案件材料"
-          dropHint="起诉状、合同、证据、聊天记录等（Word/PDF/图片/文本）拖入即可——自动复制进工作区后引用"
+          dropHint="起诉状、合同、证据、聊天记录等（Word/PDF/图片/文本）拖入即可，支持整个文件夹——自动复制进工作区后引用"
           value={files}
           onChange={setFiles}
           disabled={busy}
@@ -140,12 +188,14 @@ export function CaseAnalysisDialog({
           uploadWorkspaceFile={uploadWorkspaceFile}
         />
 
+        {profileEntry}
+
         <div className="lawyer-dialog__actions">
           <button type="button" className="lawyer-dialog__cancel" onClick={onCancel} disabled={busy}>
             取消
           </button>
           <button type="button" className="lawyer-dialog__submit" onClick={submit} disabled={busy}>
-            {busy ? '正在发起…' : '开始分析'}
+            {busy ? '正在发起…' : `开始分析${replaySuffix}`}
           </button>
         </div>
       </div>

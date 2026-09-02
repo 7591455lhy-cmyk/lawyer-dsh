@@ -1,0 +1,7 @@
+# headless 演示运行的 lawyer-tools overlay（只挂 Host 技能提供方；
+# Client 插件 sidebar/wizard 不进 headless——无浏览器半可挂载）。
+- insert:
+  - id: lawyer-tools
+    name: lawyer-tools
+    config:
+      skillsDir: <lawyer-dsh 仓库绝对路径>/skills

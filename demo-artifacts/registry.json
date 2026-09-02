@@ -1,0 +1,8 @@
+[
+  { "key": "contract-review", "ws": "workspace-contract-review", "title": "合同审核" },
+  { "key": "case-analysis", "ws": "workspace-case-analysis", "title": "案件分析" },
+  { "key": "doc:民事起诉状", "ws": "workspace-doc-民事起诉状", "title": "案件文书生成 · 民事起诉状" },
+  { "key": "doc:民事答辩状", "ws": "workspace-doc-民事答辩状", "title": "案件文书生成 · 民事答辩状" },
+  { "key": "doc:代理词", "ws": "workspace-doc-代理词", "title": "案件文书生成 · 代理词" },
+  { "key": "doc:法律意见书", "ws": "workspace-doc-法律意见书", "title": "案件文书生成 · 法律意见书" }
+]

@@ -1,0 +1,26 @@
+# 让不同系统的换行与二进制文件不再互相污染。
+#
+# * .ps1 / .cmd 必须 CRLF：Windows 批处理与 PowerShell 对 LF 的容忍度不一，
+#   混用会出现「脚本看起来没问题但执行报错」。
+# * 含中文字面量的 .ps1 另需 UTF-8 BOM（PS 5.1 否则按 GBK 解析报语法错）——
+#   BOM 是文件编码属性，本文件管不到，请在保存时选择「UTF-8 with BOM」。
+
+* text=auto
+
+*.ps1    text eol=crlf
+*.cmd    text eol=crlf
+*.bat    text eol=crlf
+*.sh     text eol=lf
+*.mjs    text eol=lf
+*.ts     text eol=lf
+*.tsx    text eol=lf
+*.js     text eol=lf
+*.json   text eol=lf
+*.md     text eol=lf
+*.yml    text eol=lf
+*.yaml   text eol=lf
+
+*.png    binary
+*.ico    binary
+*.docx   binary
+*.zip    binary

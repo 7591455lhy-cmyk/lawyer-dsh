@@ -33,7 +33,7 @@ agent_created: true
 [
  {"para": 10, "find": "段内唯一子串", "op": "replace", "new": "新文本", "comment": "批注（可选）"},
  {"para": 46, "find": "（误译英文）", "op": "delete", "comment": "删除理由"},
- {"para": 72, "find": "珠海市人民政府", "op": "insert_before", "new": "<BR>"},
+ {"para": 72, "find": "某某市人民政府", "op": "insert_before", "new": "<BR>"},
  {"para": 9,  "find": "法定代表人：XX", "op": "comment", "comment": "纯批注不改文字"}
 ]
 ```

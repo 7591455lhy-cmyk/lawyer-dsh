@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 使用问题先看这里
+    url: https://github.com/7591455lhy-cmyk/lawyer-dsh/blob/master/docs/常见问题.md
+    about: 安装、凭据、画像、文件路径等高频问题的答案都在这里。
+  - name: 安装与升级
+    url: https://github.com/7591455lhy-cmyk/lawyer-dsh/blob/master/docs/安装-安装包版.md
+    about: 下载、安装、首启两个 Key、数据位置、卸载。
+  - name: 安全与密钥问题
+    url: https://github.com/7591455lhy-cmyk/lawyer-dsh/blob/master/SECURITY.md
+    about: 密钥泄露或安全相关问题请走私有报告，不要在公开 Issue 里贴 Key。

@@ -1,0 +1,19 @@
+摸鱼工作站（lawyer-dsh）—— 一站式律师 AI 工作台
+Copyright 2026 lawyer-dsh authors
+
+本项目基于 DeepSeek Harness（dsh）构建；安装包内随附的第三方组件的完整
+清单、许可全文与获取方式见同目录的 THIRD-PARTY-NOTICES.md，其中主要包括：
+
+  * DeepSeek Harness（dsh）0.1.1-rc.2 —— MIT License，Copyright (c) 2026 DeepSeek
+  * claude-for-legal-ZH —— Apache License 2.0，Copyright CSlawyer1985
+  * dsh-worktable 0.2.2 —— MIT License
+  * Node.js 24.19.0 —— MIT License
+  * Electron 43.4.1 —— MIT License
+
+商标说明：「摸鱼工作站」是本项目的产品名称。DeepSeek 是相应权利人的商标，
+本项目与 DeepSeek 官方之间不存在隶属、赞助或背书关系；产品名称与界面文案
+的品牌替换仅用于区分本项目与上游框架。
+
+免责声明：本软件的输出由大语言模型生成，仅供法律实务工作参考，**不构成
+法律意见，也不替代执业律师的独立判断**。使用者应对最终成果自行核验并承担
+相应责任。

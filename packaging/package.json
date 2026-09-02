@@ -1,0 +1,66 @@
+{
+  "name": "lawyer-workbench",
+  "version": "0.80.0",
+  "description": "摸鱼工作站 — 一站式律师 AI 工作台（dsh Electron 壳，lawyer-dsh）",
+  "private": true,
+  "main": "electron/main.js",
+  "author": "lawyer-dsh",
+  "scripts": {
+    "prepare-runtime": "powershell -ExecutionPolicy Bypass -File scripts/prepare-runtime.ps1",
+    "start": "electron .",
+    "smoke": "powershell -ExecutionPolicy Bypass -File scripts/smoke-dump-config.ps1",
+    "dev:launch": "powershell -ExecutionPolicy Bypass -File scripts/dev-launch.ps1",
+    "dev:stop": "powershell -ExecutionPolicy Bypass -File scripts/stop-dev.ps1",
+    "dist:launch": "powershell -ExecutionPolicy Bypass -File scripts/clean-launch.ps1",
+    "dist:stop": "powershell -ExecutionPolicy Bypass -File scripts/stop-packaged.ps1",
+    "dist:size": "powershell -ExecutionPolicy Bypass -File scripts/show-dist.ps1",
+    "dist": "electron-builder --win nsis"
+  },
+  "devDependencies": {
+    "electron": "^43.4.1",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.lawyer.dsh.workbench",
+    "productName": "摸鱼工作站",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "electron/**"
+    ],
+    "extraResources": [
+      {
+        "from": "runtime",
+        "to": "runtime"
+      },
+      {
+        "from": "../LICENSE",
+        "to": "LICENSE"
+      },
+      {
+        "from": "../NOTICE",
+        "to": "NOTICE"
+      },
+      {
+        "from": "../THIRD-PARTY-NOTICES.md",
+        "to": "THIRD-PARTY-NOTICES.md"
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "artifactName": "摸鱼工作站-Setup-0.80.exe"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "摸鱼工作站",
+      "deleteAppDataOnUninstall": false,
+      "runAfterFinish": true
+    }
+  }
+}

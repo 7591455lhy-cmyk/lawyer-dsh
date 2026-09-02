@@ -9,11 +9,16 @@
  *
  * 提交后由 client/index.ts 创建律师模式会话并注入手势指令与图片附件。
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import type { SkillEntry } from '@deepseek-ai/dsh-api-remotes/client'
 import {
   EMPTY_FILE_PICKER_VALUE, FilePicker, type FilePickerValue,
 } from './FilePicker.tsx'
+// 编译期常量：由 build.ps1 的 --define:__LAWYER_DEMO__=true|false 注入
+// （-NoDemo 出无演示数据版本）。本文件里所有演示入口都以它为条件，
+// 常量折叠后引用随之消失，demoData.ts 才能被 tree-shaking 掉。
+declare const __LAWYER_DEMO__: boolean
+import { CONTRACT_REVIEW_DEMO } from './demoData.ts'
 
 /** 审核严格程度档位。 */
 export type Strictness = '宽松' | '常规' | '严格'
@@ -30,6 +35,8 @@ export interface ContractReviewRequest {
   readonly paths: readonly string[]
   readonly images: FilePickerValue['images']
   readonly texts: FilePickerValue['texts']
+  /** 演示回放标记（M6.3）：载入演示数据后提交 = 直接展示预录成果。 */
+  readonly demoReplay?: boolean
 }
 
 /** 技能勾选状态：三类核心技能 + 附加技能（经 /name 手势注入）。 */
@@ -90,6 +97,11 @@ interface ContractReviewDialogProps {
   readonly uploadWorkspaceFile: FilePickerPropsLike['uploadWorkspaceFile']
   /** 列出当前会话可用的已安装技能目录（dsh skills RPC，含禁用模型调用的）。 */
   readonly listInstalledSkills: () => Promise<readonly SkillEntry[] | undefined>
+  /**
+   * M8：实务画像入口（由父组件渲染后传入，点击打开画像配置面板）。
+   * 传节点而非回调，是为了让三个表单共用同一块 UI 而不各自引入画像状态。
+   */
+  readonly profileEntry?: ReactNode
 }
 
 /** 仅为复用 FilePicker props 中的回调签名（避免重复声明）。 */
@@ -102,12 +114,23 @@ export function ContractReviewDialog({
   searchWorkspaceFiles,
   uploadWorkspaceFile,
   listInstalledSkills,
+  profileEntry,
 }: ContractReviewDialogProps) {
   const [stance, setStance] = useState<string>(STANCE_OPTIONS[0])
   const [strictness, setStrictness] = useState<Strictness>('常规')
   const [reviewerName, setReviewerName] = useState('')
   const [files, setFiles] = useState<FilePickerValue>(EMPTY_FILE_PICKER_VALUE)
   const [busy, setBusy] = useState(false)
+  /** 载入演示数据后的提示文案（空串即未载入）。 */
+  const [demoNotice, setDemoNotice] = useState('')
+  /** 演示回放开关（载入演示数据即 armed；提交走预录成果回放）。 */
+  const [demoArmed, setDemoArmed] = useState(false)
+  /**
+   * 提交按钮的「（演示回放）」后缀（载入演示数据后才出现）。
+   * 写成独立的条件表达式而不是直接嵌在按钮三元里：常量折叠后这条字符串
+   * 会连着三元一起消失，无演示数据版本里搜不到"演示"二字。
+   */
+  const replaySuffix = __LAWYER_DEMO__ && demoArmed ? '（演示回放）' : ''
 
   // 高级选项（技能配置）：三类核心技能默认全启用；附加技能自选。
   const [advancedOpen, setAdvancedOpen] = useState(false)
@@ -138,6 +161,22 @@ export function ContractReviewDialog({
       && !extraSkills.includes(entry.name),
   )
 
+  /**
+   * 一键载入演示数据（覆盖当前已填内容；技能开关保持用户当前选择——
+   * 默认全开即完整审核-输出链）。演示合同全文以文本材料形态内嵌，
+   * 载入后直接点击"开始审核"即可端到端查看审核报告与修订留痕稿。
+   */
+  // 整体写成条件表达式而不是在函数体内 if：常量折叠时整段（含对 demoData
+  // 的全部引用）一起消失，demoData.ts 才会被判定为未引用而 tree-shaking 掉。
+  const loadDemo: (() => void) | undefined = __LAWYER_DEMO__ ? (): void => {
+    setStance(CONTRACT_REVIEW_DEMO.stance)
+    setStrictness(CONTRACT_REVIEW_DEMO.strictness)
+    setReviewerName(CONTRACT_REVIEW_DEMO.reviewerName)
+    setFiles({ paths: [], images: [], texts: CONTRACT_REVIEW_DEMO.texts })
+    setDemoArmed(true)
+    setDemoNotice(`已载入「${CONTRACT_REVIEW_DEMO.label}」，点击"开始审核"将直接展示预录成果`)
+  } : undefined
+
   const submit = (): void => {
     setBusy(true)
     onSubmit({
@@ -148,6 +187,7 @@ export function ContractReviewDialog({
       paths: files.paths,
       images: files.images,
       texts: files.texts,
+      ...(demoArmed ? { demoReplay: true } : {}),
     })
   }
 
@@ -173,6 +213,21 @@ export function ContractReviewDialog({
           </button>
         </div>
 
+        {__LAWYER_DEMO__ && (
+          <div className="lawyer-dialog__demo">
+            <button
+              type="button"
+              className="lawyer-dialog__demo-btn"
+              onClick={loadDemo}
+              disabled={busy}
+              title={`填充演示数据（${CONTRACT_REVIEW_DEMO.label}）——覆盖当前已填内容，载入后可直接开始审核`}
+            >
+              ⚡ 载入演示数据
+            </button>
+            {demoNotice !== '' && <span className="lawyer-dialog__demo-hint">{demoNotice}</span>}
+          </div>
+        )}
+
         <label className="lawyer-dialog__label" htmlFor="lawyer-stance">我方立场</label>
         <select
           id="lawyer-stance"
@@ -186,7 +241,7 @@ export function ContractReviewDialog({
 
         <FilePicker
           label="合同文件"
-          dropHint="任意合同文件（Word/PDF/图片/文本）拖入即可——自动复制进工作区后引用"
+          dropHint="任意合同文件（Word/PDF/图片/文本）拖入即可，支持整个文件夹——自动复制进工作区后引用"
           value={files}
           onChange={setFiles}
           disabled={busy}
@@ -301,12 +356,14 @@ export function ContractReviewDialog({
           </div>
         )}
 
+        {profileEntry}
+
         <div className="lawyer-dialog__actions">
           <button type="button" className="lawyer-dialog__cancel" onClick={onCancel} disabled={busy}>
             取消
           </button>
           <button type="button" className="lawyer-dialog__submit" onClick={submit} disabled={busy}>
-            {busy ? '正在发起…' : '开始审核'}
+            {busy ? '正在发起…' : `开始审核${replaySuffix}`}
           </button>
         </div>
       </div>
