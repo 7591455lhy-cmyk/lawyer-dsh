@@ -2076,14 +2076,15 @@ function injectStyles() {
 }
 function apply(ctx) {
   injectStyles();
-  const { api } = ctx.get("connection");
   const store = createWizardStore();
   let scope;
   const listInstalledSkills = () => {
     const sessionId = ctx.sessions.list.getSnapshot().current;
     if (sessionId === void 0) return Promise.resolve(void 0);
-    return api.skills.list({ sessionId }).then(
-      (result) => result.ok ? result.value.skills : void 0,
+    const skills = ctx.get("remote.skills");
+    if (skills === void 0) return Promise.resolve(void 0);
+    return skills.list({ sessionId }).then(
+      (result) => result.ok ? result.value?.skills : void 0,
       () => void 0
     );
   };

@@ -85,12 +85,27 @@ interface Provider {
   get(candidate: Candidate): Promise<Definition | undefined>
 }
 
+/** 技能提供方工厂的 control 实参（对齐 0.1.5 的 SkillProviderControl）。 */
+interface SkillProviderControl {
+  readonly signal: AbortSignal
+  readonly invalidate: () => void
+}
+
 declare module '@deepseek-ai/cordis' {
   interface Context {
-    /** dsh 技能注册表（宿主层服务；此处仅声明本插件用到的成员）。 */
-    skills: { registerProvider(factory: (control?: unknown) => Provider): unknown }
-    /** Typert 注册表（宿主层服务；仅声明运行时注册贡献这一个成员）。 */
-    typert: { register(contribution: unknown): unknown }
+    /**
+     * dsh 技能注册表（宿主层服务；此处仅声明本插件用到的成员）。
+     * 0.1.5 签名：registerProvider(create: (control) => SkillProvider): () => void
+     * ——工厂接一个 control 实参（signal + invalidate），返回同步 disposer。
+     * 本项目不需要 control，传零参工厂同样符合（TS 允许形参更少的函数）。
+     */
+    skills: { registerProvider(create: (control: SkillProviderControl) => Provider): () => void }
+    /**
+     * Typert 注册表（宿主层服务；仅声明运行时注册贡献这一个成员）。
+     * 0.1.5 签名：register(contribution: TypertContribution): TypertDisposer，
+     * disposer 是 () => Promise<void>（不是同步的）。
+     */
+    typert: { register(contribution: unknown): () => Promise<void> }
     /**
      * dsh 设置服务（宿主层，dsh-settings-file 提供）。鸭子类型声明：
      * 本包不能 import @deepseek-ai/dsh-settings / schemastery（profile

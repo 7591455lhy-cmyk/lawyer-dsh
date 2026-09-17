@@ -1,0 +1,154 @@
+name: verify-mac-plugin
+
+# 在 Apple Silicon（macOS）上验证「dsh + 律师插件 + 工作台」能否跑起来。
+#
+# 这是 macOS 交付的前置闸门：先证明 dsh 在 darwin-arm64 上能起服务、插件能被
+# 装配，再决定要不要投入 dmg/Electron 打包。手动触发（不出包、不上传 Release）。
+#
+# 要点：
+#   - 插件构建产物 lib/ 已入库，checkout 即得，无需 esbuild / deepseek-harness。
+#   - 用临时 DSH_HOME（$RUNNER_TEMP/dsh-home），不污染 runner 默认目录。
+#   - `dsh web` 的 --patch 必须排在 --no-open 之前，否则被当透传参数报 unknown option。
+
+on:
+  workflow_dispatch:
+    inputs:
+      dsh_version:
+        description: 'dsh 版本（与本机验证过的版本保持一致）'
+        required: false
+        default: '0.1.5-alpha.2'
+      skip_worktable:
+        description: '跳过 dsh-worktable（其 macOS 支持为实验性）'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  verify:
+    runs-on: macos-latest # Apple Silicon (arm64)
+    timeout-minutes: 30
+    env:
+      DSH_VERSION: ${{ inputs.dsh_version || '0.1.5-alpha.2' }}
+      DSH_HOME: ${{ runner.temp }}/dsh-home
+      # 占位 Key：0.1.1-rc.2 无 token 鉴权，注入仅为避免首次启动卡在凭据检查。
+      DEEPSEEK_API_KEY: ci-placeholder-not-a-real-key
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Node / pnpm
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.19.0'
+      - name: 启用 pnpm（dsh plugin 内部转发 pnpm，缺它直接 127）
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.7.0 --activate
+          pnpm --version
+
+      - name: 安装 dsh
+        run: |
+          npm i -g "@deepseek-ai/dsh@$DSH_VERSION"
+          dsh --version
+
+      - name: 克隆中国法语料
+        run: git clone --depth 1 https://github.com/CSlawyer1985/claude-for-legal-ZH.git "$RUNNER_TEMP/claude-for-legal-ZH"
+
+      - name: 安装插件
+        run: |
+          args=(--legal-zh "$RUNNER_TEMP/claude-for-legal-ZH")
+          if [ "${{ inputs.skip_worktable }}" = "true" ]; then args+=(--skip-worktable); fi
+          node scripts/install-plugin.mjs "${args[@]}"
+
+      - name: 检查安装产物
+        env:
+          SKIP_WORKTABLE: ${{ inputs.skip_worktable }}
+        run: |
+          set -euo pipefail
+          profile="$DSH_HOME/profiles/web/package.json"
+          test -f "$profile" || { echo "::error::profile 未初始化：$profile"; exit 1; }
+          node -e '
+            const fs = require("node:fs");
+            const profile = process.env.DSH_HOME + "/profiles/web/package.json";
+            const pkg = JSON.parse(fs.readFileSync(profile, "utf8"));
+            const deps = Object.keys(pkg.dependencies ?? {});
+            const expected = ["lawyer-sidebar", "lawyer-tools", "lawyer-wizard"];
+            if (process.env.SKIP_WORKTABLE !== "true") expected.push("dsh-worktable");
+            const missing = expected.filter((n) => !deps.includes(n));
+            if (missing.length) { console.error("::error::profile 缺少依赖：" + missing.join(", ")); process.exit(1); }
+            console.log("profile 依赖：", deps.join(", "));
+            const bundles = pkg.dsh?.profile?.bundles ?? [];
+            if (bundles.includes("dsh-worktable")) { console.error("::error::dsh-worktable 仍在 bundles 层（应已摘除，改由 overlay 装配）"); process.exit(1); }
+          '
+          test -f "$DSH_HOME/.agent-presets/lawyer/agent.cordis.yml" || { echo "::error::lawyer preset 未部署"; exit 1; }
+          test -f "$DSH_HOME/lawyer-overlay.yml" || { echo "::error::overlay 未生成"; exit 1; }
+          adapters=$(find "$DSH_HOME/skills" -maxdepth 1 -type d -name 'chinese-legal-*' | wc -l | tr -d ' ')
+          echo "中国法 adapter：$adapters 个"
+          [ "$adapters" -gt 0 ] || { echo "::error::未安装任何 chinese-legal-* adapter"; exit 1; }
+
+      - name: 启动 dsh web 并冒烟
+        run: |
+          set -uo pipefail
+          log="$RUNNER_TEMP/dsh-web.log"
+          # --patch 必须在 --no-open 之前
+          nohup dsh web --patch "$DSH_HOME/lawyer-overlay.yml" --no-open > "$log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/dsh.pid"
+
+          # 0.1.5 起根路径需要一次性 token：启动日志会打印
+          #   dsh web: http://127.0.0.1:3080/?token=<43 字符>
+          # 无 token 直连 / 会 401，所以等这一行出现，再用它换 cookie。
+          launch=""
+          for i in $(seq 1 180); do
+            launch=$(grep -o 'dsh web: http[^ ]*' "$log" 2>/dev/null | head -n 1 | sed 's/^dsh web: //')
+            [ -n "$launch" ] && { echo "服务就绪（${i}s）"; break; }
+            sleep 1
+          done
+          if [ -z "$launch" ]; then
+            echo "::error::启动日志未出现带 token 的启动 URL（180s 超时）"
+            echo "----- dsh-web.log (tail 200) -----"; tail -n 200 "$log"; exit 1
+          fi
+          echo "  已取得启动 URL（含 token，不回显）"
+
+          # 用 token 换 cookie：期望 303 + Set-Cookie
+          curl -sS -i "$launch" -o "$RUNNER_TEMP/login.txt"
+          status=$(head -n 1 "$RUNNER_TEMP/login.txt" | tr -d '\r' | awk '{print $2}')
+          if [ "$status" != "303" ]; then
+            echo "::error::带 token 请求根路径返回 $status（期望 303）"
+            head -n 20 "$RUNNER_TEMP/login.txt"; exit 1
+          fi
+          cookie=$(grep -i '^set-cookie:' "$RUNNER_TEMP/login.txt" | head -n 1 | cut -d: -f2- | cut -d';' -f1 | sed 's/^ *//')
+          if [ -z "$cookie" ]; then echo "::error::响应里没有 Set-Cookie"; exit 1; fi
+
+          code=$(curl -s -o /dev/null -w '%{http_code}' -H "Cookie: $cookie" http://127.0.0.1:3080/)
+          if [ "$code" != "200" ]; then echo "::error::带 cookie 请求 / 返回 $code"; exit 1; fi
+          echo "  200  /（token 换 cookie 成功）"
+
+          # 静态资源不走鉴权（只有 index 需要），直接打
+          check() { # $1=路径  $2=硬失败(true/false)
+            local code
+            code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:3080$1")
+            if [ "$code" = "200" ]; then echo "  200  $1"; return 0; fi
+            if [ "$2" = "true" ]; then echo "::error::$1 返回 $code"; exit 1; fi
+            echo "::warning::$1 返回 $code（软校验）"
+          }
+          check /plugins/lawyer-sidebar/client.js true
+          check /plugins/lawyer-wizard/client.js true
+          if [ "${{ inputs.skip_worktable }}" != "true" ]; then
+            check /plugins/dsh-worktable/client.js false
+          fi
+          echo "----- dsh-web.log (tail 40，token 已脱敏) -----"
+          sed 's/token=[^ ]*/token=<redacted>/g' "$log" | tail -n 40
+
+      - name: 停止 dsh web
+        if: always()
+        run: |
+          if [ -f "$RUNNER_TEMP/dsh.pid" ]; then kill "$(cat "$RUNNER_TEMP/dsh.pid")" 2>/dev/null || true; fi
+          pkill -f "dsh web" 2>/dev/null || true
+
+      - name: 上传日志
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-dsh-web-log
+          path: ${{ runner.temp }}/dsh-web.log
+          if-no-files-found: ignore
+          overwrite: true

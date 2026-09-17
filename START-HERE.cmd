@@ -71,6 +71,11 @@ echo [OK] harness 依赖安装完成
 :build
 echo.
 echo ===== [2/5] 构建三个插件 =====
+rem 把上面定位到的 harness 透传给 build.ps1（三个脚本共用 DSH_HARNESS_ROOT
+rem 开关）：保证「pnpm install 的那个 harness」与「提供 esbuild 的那个
+rem harness」是同一个目录。升级验证期机器上并存多个版本，两者不一致会让
+rem 插件按旧版类型/工具链构建，症状难查。
+set "DSH_HARNESS_ROOT=%HARNESS%"
 for %%p in (lawyer-sidebar lawyer-tools lawyer-wizard) do (
   echo ---- %%p ----
   powershell -NoProfile -ExecutionPolicy Bypass -File "%LAWYER_ROOT%\plugins\%%p\build.ps1"

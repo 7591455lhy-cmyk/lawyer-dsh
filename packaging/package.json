@@ -14,7 +14,9 @@
     "dist:launch": "powershell -ExecutionPolicy Bypass -File scripts/clean-launch.ps1",
     "dist:stop": "powershell -ExecutionPolicy Bypass -File scripts/stop-packaged.ps1",
     "dist:size": "powershell -ExecutionPolicy Bypass -File scripts/show-dist.ps1",
-    "dist": "electron-builder --win nsis"
+    "dist": "electron-builder --win nsis",
+    "prepare-runtime:node": "node scripts/prepare-runtime.mjs",
+    "dist:mac": "electron-builder --mac dmg --arm64"
   },
   "devDependencies": {
     "electron": "^43.4.1",
@@ -61,6 +63,43 @@
       "shortcutName": "摸鱼工作站",
       "deleteAppDataOnUninstall": false,
       "runAfterFinish": true
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "category": "public.app-category.productivity",
+      "icon": "build/icon.icns",
+      "darkModeSupport": true,
+      "identity": null,
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false
+    },
+    "dmg": {
+      "artifactName": "MoyuWorkbench-${version}-${arch}.dmg",
+      "sign": false,
+      "window": {
+        "width": 540,
+        "height": 380
+      },
+      "contents": [
+        {
+          "x": 130,
+          "y": 200
+        },
+        {
+          "x": 400,
+          "y": 200,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
     }
   }
 }

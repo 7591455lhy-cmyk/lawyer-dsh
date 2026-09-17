@@ -18,7 +18,7 @@
 //   runtime/skills/                               三个律师技能
 //   runtime/VERSION                               部署版本标记
 
-const { app, BrowserWindow, dialog, session, shell } = require('electron')
+const { app, BrowserWindow, dialog, Menu, session, shell } = require('electron')
 const { execSync, spawn } = require('node:child_process')
 const fs = require('node:fs')
 const http = require('node:http')
@@ -29,11 +29,19 @@ const PORT = 3080
 const BASE_URL = `http://127.0.0.1:${PORT}`
 const READY_TIMEOUT_MS = 120_000
 const READY_POLL_INTERVAL_MS = 500
+// 0.1.5 起 Web 根路径需要一次性 token：启动日志会打印
+//   dsh web: http://127.0.0.1:3080/?token=<43 字符>
+// 无 token 直连 / 会 401；拿到后拼进首个 URL，首次访问会下发一个 30 天 cookie，
+// 之后无 token 直连也正常。0.1.1 不打印这一行，故保留端口探测兜底。
+const LAUNCH_URL_RE = /dsh web: (http:\/\/[^\s]+)/
+const IS_WIN = process.platform === 'win32'
 
 let dshProcess = null
 let mainWindow = null
 let splashWindow = null
 let quitting = false
+// 从 dsh 启动日志解析到的带 token 的 URL（0.1.5+）；老版本保持 null。
+let launchUrl = null
 
 if (!app.requestSingleInstanceLock()) {
   app.quit()
@@ -67,10 +75,17 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
+/** 随包 Node 可执行文件：Windows 是 node.exe，POSIX 是 bin/node。 */
+function nodeBinary(runtimeDir) {
+  return IS_WIN
+    ? path.join(runtimeDir, 'node', 'node.exe')
+    : path.join(runtimeDir, 'node', 'bin', 'node')
+}
+
 /** Verify the shipped runtime exists before touching userData. */
 function assertRuntime(runtimeDir) {
   const required = [
-    path.join(runtimeDir, 'node', 'node.exe'),
+    nodeBinary(runtimeDir),
     path.join(runtimeDir, 'dsh', 'node_modules', '@deepseek-ai', 'dsh', 'lib', 'bin.js'),
     // turndown 的传递依赖：npm 安装中断时它曾只剩 test/ 子目录，运行期才以
     // “选择工作区失败”（standard preset 挂载 Cannot find module）暴露。
@@ -338,7 +353,7 @@ function overlayYaml(skillsDir) {
 
 /** Spawn the bundled Node running the dsh CLI's web profile. */
 function startDsh(runtimeDir, dshHome) {
-  const nodeExe = path.join(runtimeDir, 'node', 'node.exe')
+  const nodeExe = nodeBinary(runtimeDir)
   const dshBin = path.join(runtimeDir, 'dsh', 'node_modules', '@deepseek-ai', 'dsh', 'lib', 'bin.js')
   const logsDir = path.join(app.getPath('userData'), 'logs')
   fs.mkdirSync(logsDir, { recursive: true })
@@ -354,9 +369,27 @@ function startDsh(runtimeDir, dshHome) {
     // dsh 进程，干扰 heal 的 junction 重建；ELECTRON_RUN_AS_NODE 对纯
     // node.exe 无意义但一并清掉更干净）。
     env: { ...process.env, DSH_HOME: dshHome, NODE_OPTIONS: undefined, ELECTRON_RUN_AS_NODE: undefined },
-    stdio: ['ignore', logFd, logFd],
+    // 非 Windows 下建进程组，退出时用 process.kill(-pid) 一次带走 dsh 派生的
+    // MCP / 终端子进程，否则会留下孤儿继续占着 3080。
+    detached: !IS_WIN,
+    stdio: ['ignore', 'pipe', 'pipe'],
     windowsHide: true,
   })
+  // 日志照旧落盘，同时从 stdout/stderr 里抓带 token 的启动 URL（0.1.5+）。
+  // 该行可能在 chunk 边界被切开，所以累积一个尾巴再匹配；token 是进程凭据，
+  // 只在内存里用，不回显到任何界面或日志摘要。
+  let tail = ''
+  const pump = chunk => {
+    fs.writeSync(logFd, chunk)
+    tail = `${tail}${chunk.toString('utf8')}`.slice(-4096)
+    const match = LAUNCH_URL_RE.exec(tail)
+    if (match !== null) {
+      launchUrl = match[1]
+      tail = ''
+    }
+  }
+  dshProcess.stdout.on('data', pump)
+  dshProcess.stderr.on('data', pump)
   dshProcess.on('exit', (code, signal) => {
     if (quitting) return
     fatal(new Error(`dsh web 服务意外退出（code=${code} signal=${signal}），请查看日志：${path.join(logsDir, 'dsh-web.log')}`))
@@ -367,31 +400,80 @@ function startDsh(runtimeDir, dshHome) {
 function killDsh() {
   if (dshProcess !== null && dshProcess.pid !== undefined) {
     try {
-      execSync(`taskkill /pid ${dshProcess.pid} /T /F`, { stdio: 'ignore', windowsHide: true })
+      if (IS_WIN) {
+        execSync(`taskkill /pid ${dshProcess.pid} /T /F`, { stdio: 'ignore', windowsHide: true })
+      } else {
+        // 负 pid = 整个进程组（配合 spawn 的 detached）
+        process.kill(-dshProcess.pid, 'SIGTERM')
+      }
     } catch { /* already gone */ }
     dshProcess = null
   }
 }
 
-/** Resolve once the local server answers anything on BASE_URL. */
-function waitForServer() {
+/** 端口可达性探测（不会因 401 判失败：任何 HTTP 响应都算通）。 */
+function probePort() {
+  return new Promise(done => {
+    const req = http.get(BASE_URL, res => {
+      res.resume()
+      done(true)
+    })
+    req.on('error', () => done(false))
+  })
+}
+
+/**
+ * 等服务可用，返回要加载的 URL：
+ * - 0.1.5+：等启动日志里的 token URL（拿到即用，首跳会落 30 天 cookie）；
+ * - 老版本：端口通了再等 3 秒仍没有 token 行，就退回 BASE_URL（无鉴权）。
+ */
+function waitForReady() {
   return new Promise((resolve, reject) => {
     const startedAt = Date.now()
-    const attempt = () => {
-      const req = http.get(BASE_URL, res => {
-        res.resume()
-        resolve(undefined)
-      })
-      req.on('error', () => {
-        if (Date.now() - startedAt > READY_TIMEOUT_MS) {
-          reject(new Error(`等待 ${BASE_URL} 就绪超时（${READY_TIMEOUT_MS / 1000}s），请查看 dsh-web.log`))
-        } else {
-          setTimeout(attempt, READY_POLL_INTERVAL_MS)
-        }
-      })
+    let portUpAt = 0
+    const tick = async () => {
+      if (launchUrl !== null) return resolve(launchUrl)
+      if (Date.now() - startedAt > READY_TIMEOUT_MS) {
+        return reject(new Error(`等待 ${BASE_URL} 就绪超时（${READY_TIMEOUT_MS / 1000}s），请查看 dsh-web.log`))
+      }
+      if (await probePort()) {
+        if (portUpAt === 0) portUpAt = Date.now()
+        // 0.1.5 的 token 行要等 Loader 树 settle 后才打印，给足 3 秒
+        else if (Date.now() - portUpAt > 3000) return resolve(BASE_URL)
+      }
+      setTimeout(tick, READY_POLL_INTERVAL_MS)
     }
-    attempt()
+    tick()
   })
+}
+
+/** macOS 最小应用菜单：autoHideMenuBar 在 mac 无效，且没有菜单就没有 Cmd+Q 与复制粘贴。 */
+function installMacMenu() {
+  Menu.setApplicationMenu(Menu.buildFromTemplate([
+    {
+      label: app.name,
+      submenu: [
+        { role: 'about' },
+        { type: 'separator' },
+        { role: 'hide' },
+        { role: 'hideOthers' },
+        { role: 'unhide' },
+        { type: 'separator' },
+        { role: 'quit', label: `退出 ${APP_TITLE}` },
+      ],
+    },
+    {
+      label: '编辑',
+      submenu: [
+        { role: 'undo' }, { role: 'redo' }, { type: 'separator' },
+        { role: 'cut' }, { role: 'copy' }, { role: 'paste' }, { role: 'selectAll' },
+      ],
+    },
+    {
+      label: '窗口',
+      submenu: [{ role: 'minimize' }, { role: 'zoom' }, { type: 'separator' }, { role: 'front' }],
+    },
+  ]))
 }
 
 function createSplash() {
@@ -407,7 +489,7 @@ function createSplash() {
   })
   const html = [
     '<!doctype html><html><head><meta charset="utf-8">',
-    '<style>body{font-family:"Microsoft YaHei",sans-serif;display:flex;flex-direction:column;',
+    '<style>body{font-family:"Microsoft YaHei","PingFang SC","Helvetica Neue",sans-serif;display:flex;flex-direction:column;',
     'justify-content:center;align-items:center;height:100vh;margin:0;background:#f7f7f7}',
     'h1{font-size:20px;margin:0 0 12px}p{color:#666;font-size:13px;margin:0}</style></head>',
     `<body><h1>${APP_TITLE}</h1><p>正在启动本地服务，请稍候…</p></body></html>`,
@@ -416,7 +498,7 @@ function createSplash() {
   return win
 }
 
-async function createMainWindow() {
+async function createMainWindow(url) {
   // 直连 loopback，避免系统代理劫持 127.0.0.1。
   await session.defaultSession.setProxy({ mode: 'direct' })
   // 工作台项目列表种子：preload 在页面脚本前注入 localStorage（仅首启、
@@ -463,7 +545,7 @@ async function createMainWindow() {
   // loadURL occasionally lands before the HTTP listener is fully warm — retry a few times.
   for (let attempt = 0; ; attempt++) {
     try {
-      await mainWindow.loadURL(BASE_URL)
+      await mainWindow.loadURL(url)
       break
     } catch (error) {
       if (attempt >= 10) throw error
@@ -480,8 +562,9 @@ async function main() {
   deployLegalZh(runtimeDir, dshHome)
   ensureDefaultWorkspaceDir()
   splashWindow = createSplash()
+  if (process.platform === 'darwin') installMacMenu()
   startDsh(runtimeDir, dshHome)
-  await waitForServer()
-  await createMainWindow()
+  const url = await waitForReady()
+  await createMainWindow(url)
   if (splashWindow !== null && !splashWindow.isDestroyed()) splashWindow.destroy()
 }

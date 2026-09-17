@@ -1,6 +1,9 @@
 {
   // 编辑器类型辅助：把 @deepseek-ai/* 与 react 的类型指到 deepseek-harness 源码/依赖上。
   // 构建不依赖本文件（tsdown 不做类型检查）；版本号升级后需同步 paths。
+  // 当前指向 dsh 0.1.5-alpha.2 副本 deepseek-harness-015（原目录保持 0.1.1-rc.2
+  // 用于回退对比）。0.1.5 起 @deepseek-ai/dsh-client-runtime 已改名
+  // dsh-client-modules，路径与子路径导出均随之变化。
   "compilerOptions": {
     "target": "ES2022",
     "module": "ESNext",
@@ -13,28 +16,37 @@
     "types": [],
     "paths": {
       "react": [
-        "../../../deepseek-harness/node_modules/.pnpm/@types+react@18.3.31/node_modules/@types/react"
+        "../../../deepseek-harness-015/node_modules/.pnpm/@types+react@18.3.31/node_modules/@types/react"
       ],
       "react/jsx-runtime": [
-        "../../../deepseek-harness/node_modules/.pnpm/@types+react@18.3.31/node_modules/@types/react/jsx-runtime"
+        "../../../deepseek-harness-015/node_modules/.pnpm/@types+react@18.3.31/node_modules/@types/react/jsx-runtime"
       ],
-      "@deepseek-ai/dsh-client-runtime/client": [
-        "../../../deepseek-harness/packages/client/runtime/src/client/index.ts"
+      "react-dom": [
+        "../../../deepseek-harness-015/node_modules/.pnpm/@types+react-dom@18.3.7_@types+react@18.3.31/node_modules/@types/react-dom"
+      ],
+      "react-dom/client": [
+        "../../../deepseek-harness-015/node_modules/.pnpm/@types+react-dom@18.3.7_@types+react@18.3.31/node_modules/@types/react-dom/client"
+      ],
+      "@deepseek-ai/cordis": [
+        "../../../deepseek-harness-015/vendor/cordis/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-api-session-controller/client": [
+        "../../../deepseek-harness-015/packages/api/session-controller/src/client/index.ts"
       ],
       "@deepseek-ai/dsh-client-ui-layout/client": [
-        "../../../deepseek-harness/packages/client/ui-layout/src/client/index.ts"
+        "../../../deepseek-harness-015/packages/client/ui-layout/src/client/index.ts"
       ],
       "@deepseek-ai/dsh-client-ui-sidebar/client": [
-        "../../../deepseek-harness/packages/client/ui-sidebar/src/client/index.ts"
+        "../../../deepseek-harness-015/packages/client/ui-sidebar/src/client/index.ts"
       ],
       "@deepseek-ai/dsh-client-ui-conversation/client": [
-        "../../../deepseek-harness/packages/client/ui-conversation/src/client/index.ts"
+        "../../../deepseek-harness-015/packages/client/ui-conversation/src/client/index.ts"
       ],
       "@deepseek-ai/dsh-client-ui-primitives": [
-        "../../../deepseek-harness/packages/client/ui-primitives/src/index.ts"
+        "../../../deepseek-harness-015/packages/client/ui-primitives/src/index.ts"
       ],
       "@deepseek-ai/dsh-api-remotes/client": [
-        "../../../deepseek-harness/packages/api/remotes/src/client/index.ts"
+        "../../../deepseek-harness-015/packages/api/remotes/src/client/index.ts"
       ]
     }
   },

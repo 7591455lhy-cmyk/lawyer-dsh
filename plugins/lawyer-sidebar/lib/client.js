@@ -2779,7 +2779,7 @@ function ContractReviewDialog({
   listInstalledSkills,
   profileEntry
 }) {
-  let [stance, setStance] = (0, import_react3.useState)(STANCE_OPTIONS[0]), [strictness, setStrictness] = (0, import_react3.useState)("\u5E38\u89C4"), [reviewerName, setReviewerName] = (0, import_react3.useState)(""), [files, setFiles] = (0, import_react3.useState)(EMPTY_FILE_PICKER_VALUE), [busy, setBusy] = (0, import_react3.useState)(!1), [demoNotice, setDemoNotice] = (0, import_react3.useState)(""), [demoArmed, setDemoArmed] = (0, import_react3.useState)(!1), replaySuffix = "", [advancedOpen, setAdvancedOpen] = (0, import_react3.useState)(!1), [skillEnabled, setSkillEnabled] = (0, import_react3.useState)({ review: !0, preprocess: !0, output: !0 }), [extraSkills, setExtraSkills] = (0, import_react3.useState)([]), [installedSkills, setInstalledSkills] = (0, import_react3.useState)(void 0), [skillsLoading, setSkillsLoading] = (0, import_react3.useState)(!1);
+  let [stance, setStance] = (0, import_react3.useState)(STANCE_OPTIONS[0]), [strictness, setStrictness] = (0, import_react3.useState)("\u5E38\u89C4"), [reviewerName, setReviewerName] = (0, import_react3.useState)(""), [files, setFiles] = (0, import_react3.useState)(EMPTY_FILE_PICKER_VALUE), [busy, setBusy] = (0, import_react3.useState)(!1), [advancedOpen, setAdvancedOpen] = (0, import_react3.useState)(!1), [skillEnabled, setSkillEnabled] = (0, import_react3.useState)({ review: !0, preprocess: !0, output: !0 }), [extraSkills, setExtraSkills] = (0, import_react3.useState)([]), [installedSkills, setInstalledSkills] = (0, import_react3.useState)(void 0), [skillsLoading, setSkillsLoading] = (0, import_react3.useState)(!1);
   (0, import_react3.useEffect)(() => {
     !advancedOpen || installedSkills !== void 0 || skillsLoading || (setSkillsLoading(!0), listInstalledSkills().then(
       (entries) => {
@@ -2792,7 +2792,7 @@ function ContractReviewDialog({
   }, [advancedOpen, installedSkills, skillsLoading, listInstalledSkills]);
   let selectableSkills = (installedSkills ?? []).filter(
     (entry) => !SKILL_CATEGORIES.some((category) => category.name === entry.name) && !extraSkills.includes(entry.name)
-  ), loadDemo = void 0, submit = () => {
+  ), submit = () => {
     setBusy(!0), onSubmit({
       stance,
       strictness,
@@ -2800,8 +2800,7 @@ function ContractReviewDialog({
       skills: { ...skillEnabled, extraSkills },
       paths: files.paths,
       images: files.images,
-      texts: files.texts,
-      ...demoArmed ? { demoReplay: !0 } : {}
+      texts: files.texts
     });
   };
   return /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
@@ -2829,7 +2828,6 @@ function ContractReviewDialog({
             }
           )
         ] }),
-        !1,
         /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("label", { className: "lawyer-dialog__label", htmlFor: "lawyer-stance", children: "\u6211\u65B9\u7ACB\u573A" }),
         /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
           "select",
@@ -2960,7 +2958,7 @@ function ContractReviewDialog({
         profileEntry,
         /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "lawyer-dialog__actions", children: [
           /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("button", { type: "button", className: "lawyer-dialog__cancel", onClick: onCancel, disabled: busy, children: "\u53D6\u6D88" }),
-          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("button", { type: "button", className: "lawyer-dialog__submit", onClick: submit, disabled: busy, children: busy ? "\u6B63\u5728\u53D1\u8D77\u2026" : `\u5F00\u59CB\u5BA1\u6838${replaySuffix}` })
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("button", { type: "button", className: "lawyer-dialog__submit", onClick: submit, disabled: busy, children: busy ? "\u6B63\u5728\u53D1\u8D77\u2026" : "\u5F00\u59CB\u5BA1\u6838" })
         ] })
       ] })
     }
@@ -2990,7 +2988,7 @@ function CaseAnalysisDialog({
   uploadWorkspaceFile,
   profileEntry
 }) {
-  let [stance, setStance] = (0, import_react4.useState)(STANCE_OPTIONS2[0]), [focus, setFocus] = (0, import_react4.useState)(FOCUS_OPTIONS.map((option) => option.key)), [files, setFiles] = (0, import_react4.useState)(EMPTY_FILE_PICKER_VALUE), [busy, setBusy] = (0, import_react4.useState)(!1), [demoNotice, setDemoNotice] = (0, import_react4.useState)(""), [demoArmed, setDemoArmed] = (0, import_react4.useState)(!1), replaySuffix = "", loadDemo = void 0, toggleFocus = (key, checked) => {
+  let [stance, setStance] = (0, import_react4.useState)(STANCE_OPTIONS2[0]), [focus, setFocus] = (0, import_react4.useState)(FOCUS_OPTIONS.map((option) => option.key)), [files, setFiles] = (0, import_react4.useState)(EMPTY_FILE_PICKER_VALUE), [busy, setBusy] = (0, import_react4.useState)(!1), toggleFocus = (key, checked) => {
     setFocus((current) => checked ? [...current, key] : current.filter((item) => item !== key));
   }, submit = () => {
     setBusy(!0), onSubmit({
@@ -2998,8 +2996,7 @@ function CaseAnalysisDialog({
       focus,
       paths: files.paths,
       images: files.images,
-      texts: files.texts,
-      ...demoArmed ? { demoReplay: !0 } : {}
+      texts: files.texts
     });
   };
   return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
@@ -3027,7 +3024,6 @@ function CaseAnalysisDialog({
             }
           )
         ] }),
-        !1,
         /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("label", { className: "lawyer-dialog__label", htmlFor: "lawyer-case-stance", children: "\u6211\u65B9\u7ACB\u573A" }),
         /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
           "select",
@@ -3071,7 +3067,7 @@ function CaseAnalysisDialog({
         profileEntry,
         /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "lawyer-dialog__actions", children: [
           /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("button", { type: "button", className: "lawyer-dialog__cancel", onClick: onCancel, disabled: busy, children: "\u53D6\u6D88" }),
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("button", { type: "button", className: "lawyer-dialog__submit", onClick: submit, disabled: busy, children: busy ? "\u6B63\u5728\u53D1\u8D77\u2026" : `\u5F00\u59CB\u5206\u6790${replaySuffix}` })
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("button", { type: "button", className: "lawyer-dialog__submit", onClick: submit, disabled: busy, children: busy ? "\u6B63\u5728\u53D1\u8D77\u2026" : "\u5F00\u59CB\u5206\u6790" })
         ] })
       ] })
     }
@@ -3093,15 +3089,14 @@ function DocGenerationDialog({
   uploadWorkspaceFile,
   profileEntry
 }) {
-  let [docType, setDocType] = (0, import_react5.useState)(DOC_TYPES[0].type), [partyRole, setPartyRole] = (0, import_react5.useState)(PARTY_ROLE_OPTIONS[0]), [notes, setNotes] = (0, import_react5.useState)(""), [files, setFiles] = (0, import_react5.useState)(EMPTY_FILE_PICKER_VALUE), [busy, setBusy] = (0, import_react5.useState)(!1), [demoNotice, setDemoNotice] = (0, import_react5.useState)(""), [demoArmed, setDemoArmed] = (0, import_react5.useState)(!1), replaySuffix = "", demoLabel = "", loadDemo = void 0, submit = () => {
+  let [docType, setDocType] = (0, import_react5.useState)(DOC_TYPES[0].type), [partyRole, setPartyRole] = (0, import_react5.useState)(PARTY_ROLE_OPTIONS[0]), [notes, setNotes] = (0, import_react5.useState)(""), [files, setFiles] = (0, import_react5.useState)(EMPTY_FILE_PICKER_VALUE), [busy, setBusy] = (0, import_react5.useState)(!1), submit = () => {
     setBusy(!0), onSubmit({
       docType,
       partyRole,
       notes: notes.trim(),
       paths: files.paths,
       images: files.images,
-      texts: files.texts,
-      ...demoArmed ? { demoReplay: !0 } : {}
+      texts: files.texts
     });
   };
   return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
@@ -3129,7 +3124,6 @@ function DocGenerationDialog({
             }
           )
         ] }),
-        !1,
         /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { className: "lawyer-dialog__label", children: "\u6587\u4E66\u7C7B\u578B" }),
         /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "lawyer-dialog__strictness", role: "radiogroup", "aria-label": "\u6587\u4E66\u7C7B\u578B", children: DOC_TYPES.map((option) => /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("label", { className: "lawyer-dialog__strictness-option", children: [
           /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
@@ -3139,7 +3133,7 @@ function DocGenerationDialog({
               name: "lawyer-doc-type",
               checked: docType === option.type,
               onChange: () => {
-                setDocType(option.type), setDemoNotice("");
+                setDocType(option.type);
               },
               disabled: busy
             }
@@ -3189,7 +3183,7 @@ function DocGenerationDialog({
         profileEntry,
         /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "lawyer-dialog__actions", children: [
           /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("button", { type: "button", className: "lawyer-dialog__cancel", onClick: onCancel, disabled: busy, children: "\u53D6\u6D88" }),
-          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("button", { type: "button", className: "lawyer-dialog__submit", onClick: submit, disabled: busy, children: busy ? "\u6B63\u5728\u53D1\u8D77\u2026" : `\u5F00\u59CB\u751F\u6210${replaySuffix}` })
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("button", { type: "button", className: "lawyer-dialog__submit", onClick: submit, disabled: busy, children: busy ? "\u6B63\u5728\u53D1\u8D77\u2026" : "\u5F00\u59CB\u751F\u6210" })
         ] })
       ] })
     }
@@ -5809,7 +5803,7 @@ function applyBranding(ctx) {
         for (let added of mutation.addedNodes)
           added.nodeType === Node.TEXT_NODE ? patchDeepSeekText(added) : added.nodeType === Node.ELEMENT_NODE && patchDeepSeekTree(added);
   });
-  observer.observe(document.documentElement, { subtree: !0, childList: !0, characterData: !0 }), ctx.on("dispose", () => {
+  observer.observe(document.documentElement, { subtree: !0, childList: !0, characterData: !0 }), ctx.effect(() => () => {
     observer.disconnect();
   }), ctx.slots.inject("sidebar.brand.mark", () => ctx.slots.register(
     { name: "sidebar.brand.mark", priority: -1 },
@@ -5866,11 +5860,11 @@ function installOfficialKeyHint(ctx) {
   };
   patch();
   let observer = new MutationObserver(patch);
-  observer.observe(document.body, { subtree: !0, childList: !0, characterData: !0 }), ctx.on("dispose", () => {
+  observer.observe(document.body, { subtree: !0, childList: !0, characterData: !0 }), ctx.effect(() => () => {
     observer.disconnect();
   });
 }
-var FILE_PATH_TOKEN_RE = /@?"(?:[A-Za-z]:[\\/][^"\n]*|\\\\[^"\n]*)"?|@?'(?:[A-Za-z]:[\\/][^'\n]*|\\\\[^'\n]*)'?|@?(?:[A-Za-z]:[\\/]|\\\\)[^\s`'“”‘’()[\]【】{}<>:"|,，。；、！？*_~]*/gu, FILE_PATH_CORE_RE = /^(?:[A-Za-z]:[\\/].+|\\\\.+)$/su, FILE_EXT_RE = /\.(?:docx?|pdf|md|txt|xlsx?|pptx?|csv|png|jpe?g|gif|webp|bmp|html?|json|xml|zip|7z|rar|py|js|mjs|cjs|ts|tsx|ps1|bat|cmd|yaml|yml)$/iu;
+var FILE_PATH_TOKEN_RE = /@?"(?:[A-Za-z]:[\\/][^"\n]*|\\\\[^"\n]*)"?|@?'(?:[A-Za-z]:[\\/][^'\n]*|\\\\[^'\n]*)'?|@?(?:[A-Za-z]:[\\/]|\\\\)[^\s`'“”‘’()[\]【】{}<>:"|,，。；、！？*_~]*/gu, FILE_PATH_CORE_RE = /^(?:[A-Za-z]:[\\/].+|\\\\.+)$/su, openPathAbsentWarned = !1, FILE_EXT_RE = /\.(?:docx?|pdf|md|txt|xlsx?|pptx?|csv|png|jpe?g|gif|webp|bmp|html?|json|xml|zip|7z|rar|py|js|mjs|cjs|ts|tsx|ps1|bat|cmd|yaml|yml)$/iu;
 function normalizePathToken(token) {
   let candidate = token.trim();
   if (candidate.startsWith("@") && (candidate = candidate.slice(1)), candidate.length >= 2) {
@@ -5923,9 +5917,15 @@ function installChatPathLinks(ctx) {
     for (; (match = FILE_PATH_TOKEN_RE.exec(text2)) !== null && !(match.index > offset); )
       if (offset <= match.index + match[0].length) {
         let path = normalizePathToken(match[0]);
-        path !== null && (lastOpenAt = Date.now(), ctx.workspaces.openPath(path).catch((error) => {
-          console.warn(`[lawyer-sidebar] \u6253\u5F00\u6587\u4EF6\u5931\u8D25\uFF08${path}\uFF09\uFF1A${error instanceof Error ? error.message : String(error)}`);
-        }));
+        if (path !== null) {
+          lastOpenAt = Date.now();
+          let openPath = ctx.workspaces.openPath;
+          typeof openPath != "function" ? openPathAbsentWarned || (openPathAbsentWarned = !0, console.warn(
+            "[lawyer-sidebar] workspaces.openPath \u4E0D\u53EF\u7528\uFF08dsh 0.1.5 \u5BA2\u6237\u7AEF\u5DF2\u79FB\u9664\u8BE5\u80FD\u529B\uFF09\uFF0C\u804A\u5929\u533A\u8DEF\u5F84\u4EC5\u4FDD\u7559\u53EF\u70B9\u51FB\u6837\u5F0F\uFF0C\u70B9\u51FB\u4E0D\u4F1A\u6253\u5F00"
+          )) : openPath.call(ctx.workspaces, path).catch((error) => {
+            console.warn(`[lawyer-sidebar] \u6253\u5F00\u6587\u4EF6\u5931\u8D25\uFF08${path}\uFF09\uFF1A${error instanceof Error ? error.message : String(error)}`);
+          });
+        }
         break;
       }
   };
@@ -5939,7 +5939,7 @@ function installChatPathLinks(ctx) {
         for (let added of mutation.addedNodes)
           added.nodeType === Node.TEXT_NODE ? markOpenableText(added) : added.nodeType === Node.ELEMENT_NODE && markOpenableTree(added);
   });
-  observer.observe(document.body, { subtree: !0, childList: !0, characterData: !0 }), ctx.on("dispose", () => {
+  observer.observe(document.body, { subtree: !0, childList: !0, characterData: !0 }), ctx.effect(() => () => {
     document.removeEventListener("click", handleClick, !0), observer.disconnect();
   });
 }
@@ -5956,7 +5956,11 @@ function normalizeDomainList(raw) {
 }
 function apply(ctx) {
   injectStyles(), applyBranding(ctx), installOfficialKeyHint(ctx), installChatPathLinks(ctx);
-  let { api } = ctx.get("connection"), entriesSnapshot = FALLBACK_ENTRIES, entriesListeners = /* @__PURE__ */ new Set(), entriesSource = {
+  let uiWorkspace;
+  ctx.inject(["uiWorkspace"], (wsCtx) => {
+    uiWorkspace = wsCtx.uiWorkspace;
+  });
+  let entriesSnapshot = FALLBACK_ENTRIES, entriesListeners = /* @__PURE__ */ new Set(), entriesSource = {
     getSnapshot() {
       return entriesSnapshot;
     },
@@ -6018,12 +6022,12 @@ function apply(ctx) {
     settingsScope !== void 0 && settingsScope.set("apiKeyGuideDone", !0).catch(() => {
     });
   }, DEEPSEEK_CREDENTIAL_REFS = ["DEEPSEEK_API_KEY", "DEEPSEEK_OFFICIAL_API_KEY"], deepSeekKeyConfigured = async () => {
-    let credentials = api.credentials;
+    let credentials = ctx.get("remote.credentials");
     if (credentials === void 0 || typeof credentials.describe != "function") return !1;
     try {
-      let response = await credentials.describe({ refs: DEEPSEEK_CREDENTIAL_REFS });
-      if (!response.result.ok) return !1;
-      let described = response.result.value?.credentials ?? {};
+      let response = await credentials.describe(DEEPSEEK_CREDENTIAL_REFS);
+      if (!response.ok) return !1;
+      let described = response.value ?? {};
       return DEEPSEEK_CREDENTIAL_REFS.some((ref) => described[ref]?.configured === !0);
     } catch {
       return !1;
@@ -6041,9 +6045,14 @@ function apply(ctx) {
   });
   let selectPreset = async (sessionId, preset) => {
     try {
-      let response = await api.agentPresets.select({ sessionId, agentPreset: preset });
-      return response.result.ok ? (ctx.sessions.noteAgentPreset(sessionId, response.result.value.agentPreset), !0) : (console.error(
-        `[lawyer-sidebar] \u5207\u6362\u5230 preset "${preset}" \u5931\u8D25\uFF1A${response.result.error.message}\uFF08preset \u9700\u90E8\u7F72\u5230 $DSH_HOME/.agent-presets/${preset}/\uFF0C\u8FD0\u884C debug-web.cmd \u53EF\u81EA\u52A8\u90E8\u7F72 lawyer\uFF09`
+      let agentPresets = ctx.get("remote.agentPresets");
+      if (agentPresets === void 0)
+        return console.error(
+          "[lawyer-sidebar] remote.agentPresets \u670D\u52A1\u4E0D\u53EF\u7528\uFF0C\u65E0\u6CD5\u5207\u6362 preset\uFF080.1.5 \u8D77\u8BE5\u80FD\u529B\u7531 agent-presets \u63D2\u4EF6\u4EE5 Remote \u547D\u540D\u7A7A\u95F4\u6CE8\u518C\uFF09"
+        ), !1;
+      let response = await agentPresets.select(sessionId, preset);
+      return response.ok ? !0 : (console.error(
+        `[lawyer-sidebar] \u5207\u6362\u5230 preset "${preset}" \u5931\u8D25\uFF1A${response.error?.message ?? "\u672A\u77E5\u9519\u8BEF"}\uFF08preset \u9700\u90E8\u7F72\u5230 $DSH_HOME/.agent-presets/${preset}/\uFF0C\u8FD0\u884C debug-web.cmd \u53EF\u81EA\u52A8\u90E8\u7F72 lawyer\uFF09`
       ), !1);
     } catch (error) {
       return console.error(
@@ -6057,8 +6066,8 @@ function apply(ctx) {
     );
   }, startTaskIn = async (sessionId, parts, preset = LAWYER_PRESET) => {
     if (preset !== "") {
-      let summary = ctx.sessions.list.getSnapshot().byId[sessionId];
-      if ((summary === void 0 || summary.agentPreset !== preset) && !await selectPreset(sessionId, preset))
+      let summary = ctx.sessions.list.getSnapshot().byId[sessionId], currentPreset = summary?.projectionValues?.agentPreset ?? void 0;
+      if ((summary === void 0 || currentPreset !== preset) && !await selectPreset(sessionId, preset))
         return;
     }
     let session = ctx.sessions.binding(sessionId)?.session;
@@ -6071,7 +6080,7 @@ function apply(ctx) {
     let wsList = ctx.workspaces.list.getSnapshot(), target = workspaceId;
     if (target === void 0) {
       let current = ctx.sessions.list.getSnapshot().current;
-      target = (current !== void 0 ? wsList.items.find((item) => item.sessionIds.includes(current))?.workspaceId : void 0) ?? wsList.recentWorkspaceId;
+      target = (current !== void 0 ? wsList.items.find((item) => item.sessionIds.includes(current))?.workspaceId : void 0) ?? wsList.items[0]?.workspaceId;
     }
     if (target === void 0) {
       console.warn("[lawyer-sidebar] \u65E0\u53EF\u7528\u5DE5\u4F5C\u533A\uFF0C\u5F8B\u5E08\u4EFB\u52A1\u6307\u4EE4\u672A\u6CE8\u5165");
@@ -6101,12 +6110,18 @@ function apply(ctx) {
         if (typeof preinjected == "string" && preinjected.length > 0)
           dir = preinjected;
         else {
-          let listing = await ctx.workspaces.listDirectory();
-          try {
-            dir = await ctx.workspaces.createDirectory(listing.home, FALLBACK_WORKSPACE_DIR_NAME);
-          } catch {
-            let sep = listing.home.includes("\\") ? "\\" : "/";
-            dir = listing.home + sep + FALLBACK_WORKSPACE_DIR_NAME;
+          if (uiWorkspace === void 0)
+            return console.warn(
+              "[lawyer-sidebar] uiWorkspace \u670D\u52A1\u4E0D\u53EF\u7528\uFF0C\u4E14\u65E0\u9884\u7F6E\u5DE5\u4F5C\u533A\u76EE\u5F55\uFF0C\u8DF3\u8FC7\u515C\u5E95\u5DE5\u4F5C\u533A\u521B\u5EFA\uFF08\u63D2\u4EF6 package.json \u7684 dsh.client.inject \u9700\u5305\u542B @deepseek-ai/dsh-client-ui-workspace\uFF09"
+            ), null;
+          {
+            let listing = await uiWorkspace.listDirectory();
+            try {
+              dir = await uiWorkspace.createDirectory(listing.home, FALLBACK_WORKSPACE_DIR_NAME);
+            } catch {
+              let sep = listing.home.includes("\\") ? "\\" : "/";
+              dir = listing.home + sep + FALLBACK_WORKSPACE_DIR_NAME;
+            }
           }
         }
         return (await ctx.workspaces.create({ path: dir })).workspaceId;
@@ -6122,7 +6137,7 @@ function apply(ctx) {
       }
       await runWhenSessionReady(parts, workspaceId, preset);
     })();
-  }, replayDemo = void 0, profileApi = createProfileApi(ctx), profileStatusOf = async (domain) => {
+  }, profileApi = createProfileApi(ctx), profileStatusOf = async (domain) => {
     let result = await profileApi.status(domain, new AbortController().signal);
     if (result instanceof Error) {
       console.warn(`[lawyer-sidebar] \u753B\u50CF\u72B6\u6001\u67E5\u8BE2\u5931\u8D25\uFF0C\u6309\u65E0\u753B\u50CF\u5904\u7406\uFF1A${result.message}`);
@@ -6136,10 +6151,12 @@ function apply(ctx) {
   }, submitProfileInterview = (domain, mode) => {
     (async () => {
       let meta = findProfileDomain(domain), status = await profileApi.status(domain, new AbortController().signal);
-      if (meta === void 0 || status instanceof Error) {
-        console.warn(
-          `[lawyer-sidebar] \u753B\u50CF\u8BBF\u8C08\u672A\u53D1\u8D77\uFF1A${meta === void 0 ? `\u672A\u77E5\u9886\u57DF ${domain}` : status.message}`
-        );
+      if (meta === void 0) {
+        console.warn(`[lawyer-sidebar] \u753B\u50CF\u8BBF\u8C08\u672A\u53D1\u8D77\uFF1A\u672A\u77E5\u9886\u57DF ${domain}`);
+        return;
+      }
+      if (status instanceof Error) {
+        console.warn(`[lawyer-sidebar] \u753B\u50CF\u8BBF\u8C08\u672A\u53D1\u8D77\uFF1A${status.message}`);
         return;
       }
       injectTask([{
@@ -6184,15 +6201,15 @@ function apply(ctx) {
     );
   }, listInstalledSkills = () => {
     let sessionId = ctx.sessions.list.getSnapshot().current;
-    return sessionId === void 0 ? Promise.resolve(void 0) : api.skills.list({ sessionId }).then(
-      (result) => result.ok ? result.value.skills : void 0,
+    if (sessionId === void 0) return Promise.resolve(void 0);
+    let skills = ctx.get("remote.skills");
+    return skills === void 0 ? Promise.resolve(void 0) : skills.list({ sessionId }).then(
+      (result) => result.ok ? result.value?.skills : void 0,
       () => {
       }
     );
   }, uploadWorkspaceFile = (fileName, contentBase64, signal) => {
-    let sessions = ctx.sessions.list.getSnapshot(), currentSession = sessions.current !== void 0 ? sessions.byId[sessions.current] : void 0, workspaces = ctx.workspaces.list.getSnapshot().items, workspace = workspaces.find(
-      (item) => currentSession !== void 0 && item.workspaceId === currentSession.workspaceId
-    ) ?? workspaces[0];
+    let sessions = ctx.sessions.list.getSnapshot(), workspaces = ctx.workspaces.list.getSnapshot().items, workspace = (sessions.current !== void 0 ? workspaces.find((item) => item.sessionIds.includes(sessions.current)) : void 0) ?? workspaces[0];
     if (workspace === void 0) return Promise.resolve(new Error("\u6682\u65E0\u5DE5\u4F5C\u533A\uFF0C\u65E0\u6CD5\u4E0A\u4F20\u5408\u540C\u6587\u4EF6"));
     let { rpc } = ctx.get("connection");
     return rpc.call(

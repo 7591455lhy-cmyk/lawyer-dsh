@@ -21,7 +21,16 @@
       传递依赖 yaml）
 #>
 param(
-  [string]$DshVersion = '0.1.1-rc.2',
+  # 0.1.5-rc.2：与开发态验证过的 harness 副本一致（M8.11，deepseek-harness-015）。
+  # 注意 0.1.5 起 Web 根路径需要一次性 token，Electron 壳已从启动日志解析
+  # token（见 electron/main.js）；0.1.1 等老版本不打印该行，壳会退回无 token URL。
+  #
+  # ★ 守卫陷阱（改版本号必读）：下方 needDshInstall 只看 bin.js 是否存在 +
+  #   依赖树是否完整，**$DshVersion 根本不参与判断**。所以单独改这个默认值
+  #   不会触发重装，会静默沿用旧的 runtime\dsh 安装树（实测踩过：脚本声明
+  #   0.1.5-alpha.2，而 runtime\dsh 里实际是 0.1.1-rc.2）。正确流程是
+  #   先删掉 runtime\dsh 再跑本脚本。
+  [string]$DshVersion = '0.1.5-rc.2',
   [string]$NodeVersion = '24.19.0',
   # 工作台（dsh-worktable）项目数据源目录：内容整体复制进安装包，首启
   # 部署到 userData\dsh-worktable\data。
@@ -109,6 +118,27 @@ $dshDir = Join-Path $runtime 'dsh'
 $dshBin = Join-Path $dshDir 'node_modules/@deepseek-ai/dsh/lib/bin.js'
 $dshModules = Join-Path $dshDir 'node_modules'
 $needDshInstall = -not (Test-Path $dshBin)
+
+# ── 版本比对（M8.11）─────────────────────────────────────────────────────────
+# 只看 bin.js 存在与否的旧逻辑有个静默陷阱：改了 $DshVersion 却因为 bin 还在
+# 而跳过安装，于是「脚本声明 0.1.5-alpha.2、runtime\dsh 里实际是 0.1.1-rc.2」
+# 的脱节被固化进安装包（实测踩过）。这里显式读已装版本与目标比对，不一致就
+# 连同目录一起重装——比要求人工先删目录可靠得多。
+$dshPkgJson = Join-Path $dshDir 'node_modules/@deepseek-ai/dsh/package.json'
+$installedDshVersion = $null
+if (Test-Path $dshPkgJson) {
+  try {
+    $installedDshVersion = (Get-Content $dshPkgJson -Raw | ConvertFrom-Json).version
+  } catch {
+    $installedDshVersion = $null
+  }
+}
+if (-not $needDshInstall -and $installedDshVersion -ne $DshVersion) {
+  Step "dsh version mismatch (installed=$installedDshVersion, target=$DshVersion) - reinstalling ..."
+  Remove-Item -Recurse -Force $dshDir
+  $needDshInstall = $true
+}
+
 if (-not $needDshInstall -and -not (Test-NodeModulesComplete $dshModules)) {
   # bin.js 在但依赖树残缺：只看 bin 的跳过逻辑会把中断的安装固化进安装包，强制重装。
   Step 'dsh node_modules incomplete (broken packages found) — reinstalling ...'

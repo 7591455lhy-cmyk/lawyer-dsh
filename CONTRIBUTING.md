@@ -55,8 +55,7 @@ powershell -File plugins\lawyer-tools\smoke-secrets.ps1     # 元典凭据服务
 powershell -File plugins\lawyer-tools\smoke-save.ps1        # 文件上传落盘
 
 # 构建产物自检（跑在对应的构建之后）
-node plugins\lawyer-sidebar\.check-nodemo.mjs   # -NoDemo 构建：无演示残留、无悬空引用
-node plugins\lawyer-sidebar\.check-demo-build.mjs
+node plugins\lawyer-sidebar\.check-portal.mjs    # portal / 配色等历史修复锚点
 node packaging\.check-pkg.mjs                    # 安装包产物：功能锚点 + 版本一致性
 ```
 

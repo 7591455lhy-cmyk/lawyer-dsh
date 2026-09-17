@@ -4,7 +4,7 @@
 > 基于 [DeepSeek Harness（dsh）](https://github.com/deepseek-ai) 的律师行业 Agent 工作台。
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](./LICENSE)
-[![Platform](https://img.shields.io/badge/Platform-Windows%2010%2B-blue)](./docs/安装-安装包版.md)
+[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS-blue)](./docs/安装-安装包版.md)
 
 ---
 
@@ -18,6 +18,16 @@
 | 前置条件 | 无（自备 DeepSeek API Key） | Node 22.19+/24+、pnpm 11.7.0、dsh 0.1.1-rc.2 |
 
 两条路走到的是同一套功能：插件版不含 Electron 桌面壳。
+
+macOS 提供**两种形态**：
+
+- **桌面版（dmg）**：Apple Silicon（arm64）与 Intel（x64）各一份，双击即用、
+  不要求装 Node，见 [`docs/安装-macOS版.md`](./docs/安装-macOS版.md)。
+- **插件版**：已有 dsh 环境时用，装好 Node / pnpm / dsh 后一条命令即可，见
+  [`docs/macOS-插件版安装.md`](./docs/macOS-插件版安装.md)。
+
+dmg 未做 Apple 开发者签名与公证，首次打开需要右键→打开，或执行
+`xattr -cr /Applications/摸鱼工作站.app`。
 
 ## 二、能做什么
 
@@ -41,6 +51,7 @@
 ## 四、系统要求
 
 - Windows 10 1803 及以上、x64
+- macOS 12+（Apple Silicon / Intel）：桌面版 dmg 无额外依赖；插件版需 Node 22.19+/24+、pnpm 11.7.0、dsh 0.1.5-alpha.2
 - 磁盘：安装包 175MB，安装后约 500MB，建议预留 1GB
 - 网络：需联网（本地 Agent 运行时 + 模型调用 + 法规检索）
 - 凭据：自备 DeepSeek API Key（[申请入口](https://platform.deepseek.com/api_keys)）；元典 Key 可选（[申请入口](https://open.chineselaw.com)）
@@ -48,8 +59,8 @@
 ## 五、从源码构建
 
 ```powershell
-# 1) 构建三个插件（出「无演示数据」版本时给 sidebar 加 -NoDemo）
-powershell -ExecutionPolicy Bypass -File plugins\lawyer-sidebar\build.ps1 -NoDemo
+# 1) 构建三个插件
+powershell -ExecutionPolicy Bypass -File plugins\lawyer-sidebar\build.ps1
 powershell -ExecutionPolicy Bypass -File plugins\lawyer-tools\build.ps1
 powershell -ExecutionPolicy Bypass -File plugins\lawyer-wizard\build.ps1
 
@@ -76,9 +87,8 @@ lawyer-dsh/
 │   └── lawyer-wizard/    配置引导与自定义入口管理（Client 插件）
 ├── skills/               律师技能（合同审核 / 案件分析 / 文书生成 / 修订留痕）
 ├── profiles/lawyer/      lawyer agent preset（含元典 MCP 配置）
-├── scripts/              claude-for-legal-ZH 的 Windows 安装脚本等
+├── scripts/              跨平台安装脚本（install-plugin.mjs / install-legal-zh.mjs）等
 ├── packaging/            Electron 壳 + electron-builder 打包
-├── demo-artifacts/       演示成果的生产与固化脚本（源码公开的演示数据用虚构所名）
 └── docs/                 安装 / 构建 / 常见问题 / 发布
 ```
 

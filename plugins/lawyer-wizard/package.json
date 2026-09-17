@@ -16,8 +16,10 @@
     "client": {
       "platform": "web",
       "inject": [
-        "@deepseek-ai/dsh-client-runtime",
         "@deepseek-ai/dsh-client-ui-layout"
+      ],
+      "external": [
+        "@deepseek-ai/dsh-api-remotes/client"
       ]
     }
   }

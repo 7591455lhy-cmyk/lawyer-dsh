@@ -3,6 +3,26 @@
 本项目的版本格式遵循 [语义化版本](https://semver.org/lang/zh-CN/)：`主版本.次版本.修订号`。
 发布记录与下载见本仓库 Releases（安装包 tag 形如 `app-v0.80`）。
 
+## 未发布
+
+### 变更
+
+- **移除演示数据**：删除 `demo-artifacts/`、`demoData.ts`、`demoArtifacts.data.ts`、
+  `demoArtifacts.ts`，以及三个功能表单的「⚡ 载入演示数据」按钮、演示回放链路与
+  `buildDemoReplayPrompt`。配套的 `-NoDemo` 构建开关、`__LAWYER_DEMO__` 编译期常量、
+  `.check-nodemo.mjs` / `.check-demo-build.mjs` 一并删除——**构建产物不再区分
+  「带演示 / 无演示」两种形态**（`client.js` 约 360KB）。需要跑完整流程时请自备
+  合同 / 案件材料，用对话框的文件选择器或粘贴路径提交。
+- 升级 dsh 运行时到 v0.1.5-rc.2。
+
+### 修复
+
+- `prepare-runtime` 的 dsh 版本自检：旧守卫只看 `bin.js` 是否存在，改了版本号仍会
+  沿用旧安装树（实测声明 0.1.5-alpha.2 而实际装的是 0.1.1-rc.2）。现已比对已装版本
+  与目标版本，不一致自动重装。
+- `debug-web.cmd` 清除宿主注入的 `NODE_OPTIONS`：该垫片会让 npm / pnpm 安装静默中断
+  （日志停在 `added N/1266` 且没有 `Done in`），并留下大面积依赖链接缺失。
+
 ## 0.80.0 —— 首个公开发行版
 
 产品形态：Windows 桌面应用「摸鱼工作站」（Electron 壳 + 本地 dsh 运行时）。

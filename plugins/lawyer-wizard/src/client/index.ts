@@ -15,7 +15,9 @@
  * export default；跨插件协作走 cordis 服务（settingsScope）而非直接
  * import。
  */
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
+// 0.1.5 起 ClientContext 直接用 cordis 的 Context（dsh-client-runtime 已改名
+// dsh-client-modules 且不再导出插件面类型）。type-only，编译后擦除。
+import type { Context as ClientContext } from '@deepseek-ai/cordis'
 // 类型副作用：把 ui-layout 声明的槽位键（shell.overlay）合并进 SlotMap。
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 // 类型副作用：api-remotes 声明的 ConnectionHandle（含 IApiClient 的
@@ -579,7 +581,8 @@ function injectStyles(): void {
 export function apply(ctx: ClientContext): void {
   injectStyles()
 
-  const { api } = ctx.get('connection') as ConnectionHandle
+  // 0.1.5 起 ConnectionHandle 不再提供 `api` 聚合面：各命名空间以独立 Cordis
+  // 服务键 'remote.<namespace>' 注册，运行时用 ctx.get 取（见 listInstalledSkills）。
   const store = createWizardStore()
 
   /** settings 通道（ui-settings 就绪后接入；缺席时 UI 维持 boot 态）。 */
@@ -592,8 +595,12 @@ export function apply(ctx: ClientContext): void {
   const listInstalledSkills = (): Promise<readonly SkillEntry[] | undefined> => {
     const sessionId = ctx.sessions.list.getSnapshot().current
     if (sessionId === undefined) return Promise.resolve(undefined)
-    return api.skills.list({ sessionId }).then(
-      result => result.ok ? result.value.skills : undefined,
+    const skills = ctx.get('remote.skills') as
+      | { list(request: { sessionId: string }, signal?: AbortSignal): Promise<{ ok: boolean; value?: { skills: readonly SkillEntry[] } }> }
+      | undefined
+    if (skills === undefined) return Promise.resolve(undefined)
+    return skills.list({ sessionId }).then(
+      result => result.ok ? result.value?.skills : undefined,
       () => undefined,
     )
   }

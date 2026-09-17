@@ -11,7 +11,12 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-# --- 定位 harness：未显式指定时按并排布局自动探测 ---
+# --- 定位 harness：环境变量 > 显式参数 > 并排布局自动探测 ---
+# DSH_HARNESS_ROOT 是给「同一台机器上并存多个 harness 版本」用的开关：
+# 升级验证期把它指向 0.1.5 副本（deepseek-harness-015），不设则继续用并排的
+# deepseek-harness（0.1.1-rc.2）。三个插件的 build.ps1 共用这一个开关，
+# debug-web.cmd 与 START-HERE.cmd 设置一次即可整体切换。
+if (-not $Harness -and $env:DSH_HARNESS_ROOT) { $Harness = $env:DSH_HARNESS_ROOT }
 if (-not $Harness) {
   $root = Split-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) -Parent
   $candidate = Join-Path $root 'deepseek-harness'

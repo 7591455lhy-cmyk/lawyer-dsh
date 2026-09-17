@@ -1,6 +1,9 @@
 # The `lawyer` agent preset: 标准编码 Agent + 元典法律数据（MCP）。
 #
-# 结构复制自 standard preset（apps/cli/config/agent-presets/standard），
+# 结构复制自 standard preset。注意该文件在 dsh 各版本的位置不同：
+#   0.1.1：apps/cli/config/agent-presets/standard/agent.cordis.yml
+#   0.1.5：packages/preset/agent-presets/presets/standard/agent.cordis.yml
+# 升级时以新版本的 standard 为基准做 diff 对齐。
 # 新增“法律数据”段。行语义与 realm 纪律见 standard 原文件注释：
 # 提供服务的行必须位于 isolate realm；tool 行（只注册进本 preset 层的
 # tools 注册表、不 provide 服务）无需 realm。
@@ -14,8 +17,15 @@
 - id: persona
   name: '@deepseek-ai/dsh-persona'
   config:
-    text: >-
-      You are a coding agent powered by the {{model}} model. Your working directory is {{cwd}}.
+    # 0.1.3-alpha.2 起 persona 的 text 键拆成了 prefix + suffix：
+    #   prefix — required，渲染为 deployment:persona-prefix 段
+    #   suffix — 缺省 ''，渲染为 deployment:persona-suffix 段
+    # 关键点：prefix 缺失不是静默降级，而是整个 preset 挂载失败
+    # （schemastery 报 missing required value）；而写错的 text 键会被原样
+    # merge 且不报错，只会表现为「prefix 缺失」。写法对齐 0.1.5 standard。
+    suffix: Your working directory is {{cwd}}.
+    prefix: >-
+      You are a coding agent powered by the {{model}} model.
 
 - id: agent-instructions
   name: '@deepseek-ai/dsh-agent-instructions'

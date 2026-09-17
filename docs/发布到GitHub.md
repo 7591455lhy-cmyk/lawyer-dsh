@@ -6,6 +6,8 @@
 | --- | --- | --- | --- |
 | `lawyer-dsh`（本仓库） | 全部源码 + 安装包 | `app-v0.80` | `摸鱼工作站-Setup-0.80.exe`（175MB） |
 | `lawyer-sidebar` | 插件最小可运行包 + 安装脚本 | `plugin-v0.80` | `lawyer-sidebar-plugin-v0.80.zip`（约 4MB） |
+| `lawyer-dsh`（本仓库） | 跨平台插件包（macOS / Linux） | `plugin-all-v0.80` | `lawyer-plugins-v0.80.0.zip`（约 4MB，含 wizard） |
+| `lawyer-dsh`（本仓库） | macOS 桌面版 | `app-mac-v0.80` | `MoyuWorkbench-0.80.0-arm64.dmg`、`...-x64.dmg` |
 
 本文把每一步的命令与网页操作都写出来了，照抄即可。
 
@@ -32,7 +34,7 @@ powershell -File plugins\lawyer-tools\smoke-secrets.ps1
 powershell -File plugins\lawyer-tools\smoke-save.ps1
 
 # 2) 构建产物自检
-node plugins\lawyer-sidebar\.check-nodemo.mjs
+node plugins\lawyer-sidebar\.check-portal.mjs
 node packaging\.check-pkg.mjs
 
 # 3) 提交前体检：不该进仓库的都别进
@@ -123,7 +125,50 @@ gh release create plugin-v0.80 .\dist\lawyer-sidebar-plugin-v0.80.zip `
   --title "律师工作台插件包 v0.80" --notes-file docs\release-notes\plugin-v0.80.md
 ```
 
-## 四、发布后核对
+## 四、跨平台插件包（macOS / Linux）
+
+macOS 上目前没有 dmg（待定，见文末前置条件），分发形态是**插件包 zip**。
+
+```bash
+# 产物 dist/lawyer-plugins-v<版本>.zip
+node scripts/make-plugin-zip.mjs
+```
+
+包里是三个律师插件（含 `lawyer-wizard`，以本仓当前版本为准）+ `profiles/lawyer` +
+`skills/` + 两个跨平台安装脚本 + 文档与许可。`dsh-worktable` 不在包里，由安装脚本
+从官方 latest release 拉取（按约定以仓库最新版为准），这样用户每次安装拿到的都是
+上游最新修复。
+
+发 Release（资产名必须 ASCII，GitHub 会剥掉非 ASCII）：
+
+```bash
+git tag -a plugin-all-v0.80 -m "跨平台插件包 v0.80（含 wizard）"
+git push origin plugin-all-v0.80
+gh release create plugin-all-v0.80 ./dist/lawyer-plugins-v0.80.0.zip \
+  --title "跨平台插件包 v0.80" --notes-file docs/release-notes/plugin-all-v0.80.md
+```
+
+**发布前必须验证**：在 Actions 里手动跑 `verify-mac-plugin`（Apple Silicon runner）——
+它会完整跑一遍安装脚本并拉起 `dsh web`，断言主页与 `/plugins/*/client.js` 可访问。
+真机验证清单见 [`macOS-插件版安装.md`](./macOS-插件版安装.md)。
+
+### macOS 桌面版（dmg）
+
+走 `build-mac` 工作流（Actions → build-mac → Run workflow，或推 tag `app-mac-<版本>`），
+产出 **arm64 与 x64 两个 dmg**：Apple Silicon 与 Intel 的随包 Node 和 koffi 原生模块
+不同，不能互相替代，所以两个架构都必须出。出包前跑 `.check-mac-pkg.mjs` 自检，
+出包后用包内 Node 冒烟启动一次 `dsh web`。
+
+```bash
+git tag -a app-mac-v0.80 -m "摸鱼工作站 0.80（macOS：arm64 + x64）"
+git push origin app-mac-v0.80
+```
+
+资产名必须 ASCII（`MoyuWorkbench-0.80.0-arm64.dmg`）；Release 正文里说明一句
+「未签名，首次打开需 `xattr -cr` 或右键打开」。完整流程与本地出包命令见
+[`构建与出包.md`](./构建与出包.md) 的「macOS 出包（dmg）」。
+
+## 五、发布后核对
 
 - [ ] 两个仓库首页 README 渲染正常、图片与相对链接有效
 - [ ] 两个 Release 页面资产可下载，SHA256 与本地一致
@@ -131,7 +176,7 @@ gh release create plugin-v0.80 .\dist\lawyer-sidebar-plugin-v0.80.zip `
 - [ ] 用另一台机器（或干净的用户目录）装一遍 exe，走通首启引导
 - [ ] 把插件 zip 解压到干净机器跑 `install-plugin.ps1`，走通自检
 
-## 五、两个仓库的内容划分
+## 六、两个仓库的内容划分
 
 | 内容 | lawyer-dsh | lawyer-sidebar |
 | --- | --- | --- |
@@ -139,12 +184,11 @@ gh release create plugin-v0.80 .\dist\lawyer-sidebar-plugin-v0.80.zip `
 | `profiles/lawyer` preset | ✅ | ✅ |
 | `skills/` | ✅ | ✅（不含第三方市场技能） |
 | `packaging/`（Electron 壳与打包脚本） | ✅ | ➖ |
-| `demo-artifacts/`（演示数据生产脚本） | ✅ | ➖ |
 | 一键安装脚本 | `START-HERE.cmd` | `scripts/install-plugin.ps1` |
 | LICENSE / NOTICE / THIRD-PARTY-NOTICES | ✅ | ✅（只列包内实际包含的上游） |
 | README / CHANGELOG / SECURITY | ✅ | ✅（README 与 FAQ 为插件版口径） |
 
-## 六、几点约定
+## 七、几点约定
 
 - tag 命名：`app-<版本>` 与 `plugin-<版本>`，两者版本同源（都随
   `lawyer-sidebar` 的 `version`）。

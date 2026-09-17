@@ -62,3 +62,5 @@ smoke-test*
 
 # ===== 早期 pnpm 装配实验残留（.link-test / .link-test2 / .link-test3）=====
 .link-test*/
+
+.playwright-cli/

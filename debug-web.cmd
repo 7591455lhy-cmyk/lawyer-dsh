@@ -20,6 +20,11 @@ rem 路径定位（无硬编码，交接任意机器可用）：
 rem   - lawyer-dsh 根 = 本脚本所在目录（%~dp0 推导）
 rem   - deepseek-harness = 环境变量 DSH_HARNESS_ROOT；未设置时取与
 rem     lawyer-dsh 并排的 ..\deepseek-harness（两目录须放在同一父目录下）
+rem   - dsh 主目录 = 环境变量 DSH_HOME；未设置时 %USERPROFILE%\.dsh。
+rem     升级 dsh 大版本时务必用独立 DSH_HOME 验证：Session 日志格式
+rem     v2→v3 的迁移在「写开」时不可逆（旧 generation 文件保留，但目录里
+rem     会多出一个 v3 文件，旧版本二进制能否正确回落未经验证），拿日常
+rem     的主目录试会把历史会话一起卷进去。
 rem   - pnpm 优先用 corepack 锁定的 11.7.0（经 %LOCALAPPDATA% 定位，
 rem     绕过版本检查）；不存在时退回 PATH 里的 pnpm
 rem 输出写入 <lawyer-dsh 根>\.dsh-web.log；浏览器访问 http://127.0.0.1:3080
@@ -44,6 +49,25 @@ cd /d "%HARNESS%"
 rem 依赖已安装完毕，跳过 pnpm run 前的依赖校验（避免再次触发全量 auto-install）
 set npm_config_verify_deps_before_run=false
 
+rem --- 跳过 lefthook hooks 安装 ---
+rem dsh 0.1.5 的 root postinstall（scripts/install-lefthook.mjs）会往 git
+rem worktree 里装 worktree-local hooks，并在共享的 .git 下加排他锁。本机
+rem 该步骤会被环境的批量删除保护拦下，锁文件残留后**每次** pnpm install
+rem 都以「stale Lefthook installer lock」失败，进而让 pnpm dsh 全线不可用
+rem （开发态根本用不到 git hooks）。该脚本自带跳过开关（CI=true 时直接
+rem return，见 install-lefthook.mjs:692），这里借用它。
+rem 若要彻底解决：手工删除 <harness>\.git\dsh-lefthook-install.lock 即可去掉本行。
+set CI=true
+
+rem --- 清掉宿主注入的 node 垫片（NODE_OPTIONS）---
+rem 本开发环境通过 NODE_OPTIONS=--require=...node-language-shim.cjs 注入了一个
+rem 语言垫片（内含 safe-delete 保护）。该变量会被所有 node 子进程继承，实测会
+rem 干扰 pnpm 的 store 操作（报 ERR_PNPM_READ_FROM_STORE / ENOENT: unlink）与
+rem dsh 的 heal（junction 重建），曾导致 pnpm install 中途失败、依赖链接大面积
+rem 缺失、client bundle 无法生成。打包壳 electron/main.js 早已显式清掉它，
+rem 开发态这里保持一致。
+set NODE_OPTIONS=
+
 rem --- pnpm 调用方式：corepack 锁定的 11.7.0 优先，退回 PATH 里的 pnpm ---
 set "PNPM=%LOCALAPPDATA%\node\corepack\v1\pnpm\11.7.0\bin\pnpm.cjs"
 set "PNPM_CALL=node "%PNPM%""
@@ -51,6 +75,11 @@ if not exist "%PNPM%" set "PNPM_CALL=pnpm"
 
 rem --- lawyer-dsh 根的 file:/// 形式（反斜杠转正斜杠，盘符大小写不敏感）---
 set "LR_URL=%LAWYER_ROOT:\=/%"
+
+rem --- dsh 主目录：DSH_HOME 优先，默认是 %USERPROFILE%\.dsh ---
+if not defined DSH_HOME set "DSH_HOME=%USERPROFILE%\.dsh"
+echo [lawyer-dsh] DSH_HOME=%DSH_HOME%
+echo [lawyer-dsh] HARNESS  =%HARNESS%
 
 echo [lawyer-dsh] [0/3] stopping any running dsh web on port 3080 ...
 for /f "tokens=5" %%a in ('netstat -aon ^| findstr /R /C:":3080.*LISTENING"') do taskkill /T /F /PID %%a >nul 2>&1
@@ -80,8 +109,8 @@ if errorlevel 1 (
 )
 
 echo [lawyer-dsh] [2/3] deploying lawyer agent preset ...
-if not exist "%USERPROFILE%\.dsh\.agent-presets" mkdir "%USERPROFILE%\.dsh\.agent-presets"
-xcopy /E /I /Y "%LAWYER_ROOT%\profiles\lawyer" "%USERPROFILE%\.dsh\.agent-presets\lawyer" >nul
+if not exist "%DSH_HOME%\.agent-presets" mkdir "%DSH_HOME%\.agent-presets"
+xcopy /E /I /Y "%LAWYER_ROOT%\profiles\lawyer" "%DSH_HOME%\.agent-presets\lawyer" >nul
 if errorlevel 1 (
   echo [lawyer-dsh] preset deploy failed - see output above
   pause

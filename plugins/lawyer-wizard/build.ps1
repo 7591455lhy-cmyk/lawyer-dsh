@@ -11,7 +11,12 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-# --- 定位 harness：未显式指定时按并排布局自动探测 ---
+# --- 定位 harness：环境变量 > 显式参数 > 并排布局自动探测 ---
+# DSH_HARNESS_ROOT 是给「同一台机器上并存多个 harness 版本」用的开关：
+# 升级验证期把它指向 0.1.5 副本（deepseek-harness-015），不设则继续用并排的
+# deepseek-harness（0.1.1-rc.2）。debug-web.cmd 与 START-HERE.cmd 只需设置
+# 同一个环境变量即可整体切换，不必改任何脚本。
+if (-not $Harness -and $env:DSH_HARNESS_ROOT) { $Harness = $env:DSH_HARNESS_ROOT }
 if (-not $Harness) {
   $root = Split-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) -Parent
   $candidate = Join-Path $root 'deepseek-harness'
@@ -53,7 +58,11 @@ $clientArgs = @(
   '--external:@deepseek-ai/cordis',
   '--external:@deepseek-ai/dsh-client-ui-slots',
   '--external:@deepseek-ai/dsh-client-ui-primitives',
-  '--external:@deepseek-ai/dsh-client-runtime/client',
+  # 0.1.5 起 @deepseek-ai/dsh-client-runtime 已不存在（改名 dsh-client-modules
+  # 后不再导出插件面类型），本项目已无任何对它的 import，故不再 external 它——
+  # 它其实是引导包（含模块系统 bootstrap），普通插件声明它会污染加载。
+  # 剩下的这一项不在 dsh 的 PLATFORM_MODULES 基线里，必须同时在 package.json
+  # 的 dsh.client.external 声明，运行时模块表才会提供。
   '--external:@deepseek-ai/dsh-api-remotes/client',
   '--sourcemap',
   ('--outfile=' + (Join-Path $plugin 'lib\client.js')),
