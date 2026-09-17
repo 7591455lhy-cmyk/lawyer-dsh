@@ -14,7 +14,7 @@ macOS 为实验性支持）。
 | --- | --- | --- |
 | Node | 22.19+ 或 24+ | `brew install node@24` |
 | pnpm | 11.7.0 | `corepack enable && corepack prepare pnpm@11.7.0 --activate` |
-| dsh | 0.1.1-rc.2 | `npm i -g @deepseek-ai/dsh@0.1.1-rc.2` |
+| dsh | 0.1.5-rc.2 | `npm i -g @deepseek-ai/dsh@0.1.5-rc.2` |
 | DeepSeek API Key | 自备 | [申请](https://platform.deepseek.com/api_keys) |
 | claude-for-legal-ZH | 可选 | `git clone https://github.com/CSlawyer1985/claude-for-legal-ZH.git` |
 
@@ -50,7 +50,7 @@ dsh web --patch "$HOME/.dsh/lawyer-overlay.yml" --no-open
 | --- | --- |
 | `--profile <name>` | 目标 dsh profile，默认 `web` |
 | `--dsh-home <dir>` | dsh 用户目录，默认 `$DSH_HOME`，其次 `~/.dsh` |
-| `--dsh-version <ver>` | PATH 里没有 dsh 时用 npx 拉的版本，默认 `0.1.1-rc.2` |
+| `--dsh-version <ver>` | PATH 里没有 dsh 时用 npx 拉的版本，默认 `0.1.5-rc.2` |
 | `--legal-zh <dir>` | 中国法语料仓库目录（默认与本仓并排） |
 | `--clone-legal-zh` | 语料缺失时自动 `git clone` |
 | `--link` | 中国法 adapter 用符号链接（git pull 即更新） |
@@ -91,7 +91,7 @@ CI 侧有等价的自动验证：`.github/workflows/verify-mac-plugin.yml`（App
 - **左侧工作台（dsh-worktable）在 macOS 是实验性支持**（其官方 README 原话：Windows 是
   完整验证平台）。装上后界面空白属已知风险，用 `--skip-worktable` 隔离，其余功能不受影响。
 - 没有桌面壳：需要先自己装 Node/pnpm/dsh，服务随终端生命周期（关掉终端即停）。
-- `dsh` 版本以 0.1.1-rc.2 为准；用更高版本（如 0.1.5）时脚本会打印版本不匹配的警告。
+- `dsh` 版本以 0.1.5-rc.2 为准；用更高版本（如 0.1.5）时脚本会打印版本不匹配的警告。
 
 ## 七、卸载
 

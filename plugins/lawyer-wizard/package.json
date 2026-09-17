@@ -1,6 +1,6 @@
 {
   "name": "lawyer-wizard",
-  "version": "0.80.0",
+  "version": "0.81.0",
   "description": "律师工作台配置引导（Client 插件）：首启向导 + 功能入口管理（新增/删除/重排自定义入口），持久化到 $DSH_HOME/settings.yaml 的 lawyer-workbench 分节",
   "type": "module",
   "main": "lib/index.js",

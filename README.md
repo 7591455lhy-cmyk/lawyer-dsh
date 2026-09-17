@@ -15,7 +15,7 @@
 | 适合谁 | 想直接用的律师 / 法务 | 已有 dsh 环境、只想要右侧栏的开发者 |
 | 拿到什么 | `摸鱼工作站-Setup-0.80.exe`（175MB，含本地 dsh 运行时、Node、中国法语料） | `lawyer-sidebar-plugin-v0.80.zip`（约 4MB：两个插件 + lawyer preset + 一键安装脚本） |
 | 装到哪 | 独立桌面应用，双击即用 | 装进你自己的 dsh web profile |
-| 前置条件 | 无（自备 DeepSeek API Key） | Node 22.19+/24+、pnpm 11.7.0、dsh 0.1.1-rc.2 |
+| 前置条件 | 无（自备 DeepSeek API Key） | Node 22.19+/24+、pnpm 11.7.0、dsh 0.1.5-rc.2 |
 
 两条路走到的是同一套功能：插件版不含 Electron 桌面壳。
 
@@ -51,7 +51,7 @@ dmg 未做 Apple 开发者签名与公证，首次打开需要右键→打开，
 ## 四、系统要求
 
 - Windows 10 1803 及以上、x64
-- macOS 12+（Apple Silicon / Intel）：桌面版 dmg 无额外依赖；插件版需 Node 22.19+/24+、pnpm 11.7.0、dsh 0.1.5-alpha.2
+- macOS 12+（Apple Silicon / Intel）：桌面版 dmg 无额外依赖；插件版需 Node 22.19+/24+、pnpm 11.7.0、dsh 0.1.5-rc.2
 - 磁盘：安装包 175MB，安装后约 500MB，建议预留 1GB
 - 网络：需联网（本地 Agent 运行时 + 模型调用 + 法规检索）
 - 凭据：自备 DeepSeek API Key（[申请入口](https://platform.deepseek.com/api_keys)）；元典 Key 可选（[申请入口](https://open.chineselaw.com)）

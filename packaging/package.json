@@ -1,6 +1,6 @@
 {
   "name": "lawyer-workbench",
-  "version": "0.80.0",
+  "version": "0.81.0",
   "description": "摸鱼工作站 — 一站式律师 AI 工作台（dsh Electron 壳，lawyer-dsh）",
   "private": true,
   "main": "electron/main.js",
@@ -54,7 +54,7 @@
       "target": [
         "nsis"
       ],
-      "artifactName": "摸鱼工作站-Setup-0.80.exe"
+      "artifactName": "摸鱼工作站-Setup-0.81.exe"
     },
     "nsis": {
       "oneClick": false,

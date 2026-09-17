@@ -36,7 +36,15 @@ rem --- 定位 deepseek-harness ---
 if defined DSH_HARNESS_ROOT (
   set "HARNESS=%DSH_HARNESS_ROOT%"
 ) else (
-  for %%i in ("%LAWYER_ROOT%\..\deepseek-harness") do set "HARNESS=%%~fi"
+  rem 优先当前在用的 0.1.5 副本 deepseek-harness-015；旧的 deepseek-harness
+  rem 工作树已在 M8.12 清空以省空间（仅保留共享 .git），直接取它会拿到空壳
+  rem （没有 package.json 与 node_modules），启动必然失败。
+  set "HARNESS="
+  if exist "%LAWYER_ROOT%\..\deepseek-harness-015\package.json" (
+    for %%i in ("%LAWYER_ROOT%\..\deepseek-harness-015") do set "HARNESS=%%~fi"
+  ) else (
+    for %%i in ("%LAWYER_ROOT%\..\deepseek-harness") do set "HARNESS=%%~fi"
+  )
 )
 if not exist "%HARNESS%\package.json" (
   echo [lawyer-dsh] deepseek-harness not found at "%HARNESS%"

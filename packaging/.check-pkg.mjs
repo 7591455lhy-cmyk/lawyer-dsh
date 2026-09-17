@@ -6,7 +6,7 @@
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 
-const exe = join('dist', '摸鱼工作站-Setup-0.80.exe')
+const exe = join('dist', '摸鱼工作站-Setup-0.81.exe')
 let bad = 0
 if (existsSync(exe)) console.log('exe:', exe, (statSync(exe).size / 1024 / 1024).toFixed(1) + 'MB')
 else { bad++; console.log('exe MISSING') }
@@ -70,7 +70,7 @@ if (existsSync(toolsPacked)) {
 const runtimeVersion = readFileSync(join(base, 'VERSION'), 'utf8').trim()
 const pluginVersions = ['lawyer-sidebar', 'lawyer-tools', 'lawyer-wizard']
   .map(p => JSON.parse(readFileSync(join(base, `plugins/${p}/package.json`), 'utf8')).version)
-const versionOk = runtimeVersion === '0.80.0' && pluginVersions.every(v => v === '0.80.0')
+const versionOk = runtimeVersion === '0.81.0' && pluginVersions.every(v => v === '0.81.0')
 if (!versionOk) bad++
 console.log(`  version? runtime=${runtimeVersion} plugins=${pluginVersions.join('/')}`, versionOk ? 'ok' : 'MISMATCH')
 

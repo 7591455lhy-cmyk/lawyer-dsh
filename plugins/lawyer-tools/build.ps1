@@ -19,11 +19,15 @@ $ErrorActionPreference = 'Stop'
 if (-not $Harness -and $env:DSH_HARNESS_ROOT) { $Harness = $env:DSH_HARNESS_ROOT }
 if (-not $Harness) {
   $root = Split-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) -Parent
-  $candidate = Join-Path $root 'deepseek-harness'
-  if (Test-Path (Join-Path $candidate 'package.json')) {
+  # 依次探测：优先当前在用的 0.1.5 副本（deepseek-harness-015），其次并排的
+  # deepseek-harness。M8.12 为省空间清掉了旧副本的工作树（仅保留共享 .git），
+  # 只探测主目录会拿到一个没有 package.json / node_modules 的空壳。
+  $candidates = @('deepseek-harness-015', 'deepseek-harness') | ForEach-Object { Join-Path $root $_ }
+  $candidate = $candidates | Where-Object { Test-Path (Join-Path $_ 'package.json') } | Select-Object -First 1
+  if ($candidate) {
     $Harness = $candidate
   } else {
-    throw "deepseek-harness not found at '$candidate'. Keep deepseek-harness next to lawyer-dsh, or pass -Harness <path>."
+    throw "deepseek-harness not found (tried: $($candidates -join ', ')). Keep a harness checkout next to lawyer-dsh, or pass -Harness <path>."
   }
 }
 $plugin = Split-Path -Parent $MyInvocation.MyCommand.Path

@@ -15,7 +15,7 @@ on:
       dsh_version:
         description: 'dsh 版本'
         required: false
-        default: '0.1.5-alpha.2'
+        default: '0.1.5-rc.2'
   push:
     tags:
       - 'app-mac-v*'
@@ -32,7 +32,7 @@ jobs:
     runs-on: macos-latest
     timeout-minutes: 60
     env:
-      DSH_VERSION: ${{ inputs.dsh_version || '0.1.5-alpha.2' }}
+      DSH_VERSION: ${{ inputs.dsh_version || '0.1.5-rc.2' }}
       # 未签名出包：跳过证书发现，避免 electron-builder 去找不存在的身份
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
     steps:

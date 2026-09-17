@@ -12,7 +12,13 @@ rem  详细说明：docs\交接指南.md
 rem ============================================================
 
 for %%i in ("%~dp0.") do set "LAWYER_ROOT=%%~fi"
-for %%i in ("%LAWYER_ROOT%\..\deepseek-harness") do set "HARNESS=%%~fi"
+rem 优先当前在用的 0.1.5 副本（deepseek-harness-015）；旧副本工作树已清空省空间
+set "HARNESS="
+if exist "%LAWYER_ROOT%\..\deepseek-harness-015\package.json" (
+  for %%i in ("%LAWYER_ROOT%\..\deepseek-harness-015") do set "HARNESS=%%~fi"
+) else (
+  for %%i in ("%LAWYER_ROOT%\..\deepseek-harness") do set "HARNESS=%%~fi"
+)
 
 echo.
 echo ===== [0/5] 环境自检 =====

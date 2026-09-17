@@ -43,9 +43,9 @@ import { fileURLToPath } from 'node:url'
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url))
 const REPO_ROOT = path.dirname(SCRIPT_DIR)
 
-// 0.1.5-alpha.2：与本机 harness 副本 deepseek-harness-015 一致（插件已按 M8.10
-// 的六项必改适配）。注意 0.1.5 起 Web 根路径需要一次性 token，见文末启动提示。
-const DSH_VERSION = '0.1.5-alpha.2'
+// 0.1.5-rc.2：与开发态验证过的 harness 副本一致（M8.11）。注意 0.1.5 起 Web
+// 根路径需要一次性 token，见文末启动提示。
+const DSH_VERSION = '0.1.5-rc.2'
 const PNPM_VERSION = '11.7.0'
 const LOCAL_PLUGINS = ['lawyer-sidebar', 'lawyer-tools', 'lawyer-wizard']
 const WORKTABLE_TGZ = 'https://github.com/Aisland-SJL/dsh-worktable/releases/latest/download/dsh-worktable.tgz'
