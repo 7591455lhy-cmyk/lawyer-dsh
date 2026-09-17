@@ -103,9 +103,10 @@ jobs:
         run: node .check-mac-pkg.mjs --arch ${{ matrix.arch }}
 
       # 用包内的 Node 与 dsh 真起一次服务。x64 构建跑在 arm64 runner 上需要
-      # Rosetta，不一定可用，所以软失败（出包结果不受影响）。
+      # Rosetta，不一定可用；这里统一软失败——出包是主目标，冒烟结论单独看
+      # 日志与诊断输出（dsh 能否在 macOS 起来另有 verify-mac-plugin 把关）。
       - name: 冒烟（启动包内 dsh web）
-        continue-on-error: ${{ matrix.arch != 'arm64' }}
+        continue-on-error: true
         run: |
           set -uo pipefail
           runtime="$GITHUB_WORKSPACE/packaging/runtime"
@@ -143,12 +144,34 @@ jobs:
           if [ -f "$RUNNER_TEMP/dsh.pid" ]; then kill "$(cat "$RUNNER_TEMP/dsh.pid")" 2>/dev/null || true; fi
           pkill -f "dsh web" 2>/dev/null || true
 
-      - name: 上传 artifact
+      # always()：即使后面的冒烟/上传 Release 失败，dmg 也一定留得下来
+      - name: 上传 dmg artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: mac-dmg-${{ matrix.arch }}
           path: packaging/dist/*.dmg
-          if-no-files-found: error
+          if-no-files-found: ignore
+          overwrite: true
+
+      - name: 收集诊断信息
+        if: always()
+        run: |
+          echo "=== dist ==="; ls -la packaging/dist 2>&1 || true
+          echo "=== mac dirs ==="; ls -la packaging/dist/mac* 2>&1 || true
+          echo "=== runtime/VERSION ==="; cat packaging/runtime/VERSION 2>&1 || true
+          echo "=== runtime/node/bin ==="; ls -la packaging/runtime/node/bin 2>&1 || true
+          echo "=== dsh 已装版本 ==="; cat packaging/runtime/dsh/node_modules/@deepseek-ai/dsh/package.json 2>/dev/null | head -n 3 || true
+          echo "=== dsh-web.log (tail 80, token 脱敏) ==="
+          sed 's/token=[^ ]*/token=<redacted>/g' "$RUNNER_TEMP/dsh-web.log" 2>/dev/null | tail -n 80 || true
+
+      - name: 上传 dsh web 日志
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-dsh-web-log-${{ matrix.arch }}
+          path: ${{ runner.temp }}/dsh-web.log
+          if-no-files-found: ignore
           overwrite: true
 
       - name: 上传 Release 资产
