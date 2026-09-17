@@ -155,4 +155,12 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload "${GITHUB_REF_NAME}" packaging/dist/*.dmg --clobber
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}"
+          # 推 tag 不会自动创建 Release，直接 upload 会失败 —— 缺了就先建一个
+          # （--generate-notes 避免命令行里写中文正文出现编码问题）
+          if ! gh release view "$tag" > /dev/null 2>&1; then
+            gh release create "$tag" --title "摸鱼工作站 ${tag#app-mac-v}（macOS：arm64 + x64）" --generate-notes
+          fi
+          gh release upload "$tag" packaging/dist/*.dmg --clobber
