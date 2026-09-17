@@ -7,7 +7,7 @@
 | `lawyer-dsh`（本仓库） | 全部源码 + 安装包 | `app-v0.80` | `摸鱼工作站-Setup-0.80.exe`（175MB） |
 | `lawyer-sidebar` | 插件最小可运行包 + 安装脚本 | `plugin-v0.80` | `lawyer-sidebar-plugin-v0.80.zip`（约 4MB） |
 | `lawyer-dsh`（本仓库） | 跨平台插件包（macOS / Linux） | `plugin-all-v0.80` | `lawyer-plugins-v0.80.0.zip`（约 4MB，含 wizard） |
-| `lawyer-dsh`（本仓库） | macOS 桌面版 | `app-mac-v0.80` | `MoyuWorkbench-0.80.0-arm64.dmg`、`...-x64.dmg` |
+| `lawyer-dsh`（本仓库） | macOS 桌面版 | `app-mac-v0.81` | `MoyuWorkbench-0.81.0-arm64.dmg`、`...-x64.dmg` |
 
 本文把每一步的命令与网页操作都写出来了，照抄即可。
 
@@ -160,11 +160,11 @@ gh release create plugin-all-v0.80 ./dist/lawyer-plugins-v0.80.0.zip \
 出包后用包内 Node 冒烟启动一次 `dsh web`。
 
 ```bash
-git tag -a app-mac-v0.80 -m "摸鱼工作站 0.80（macOS：arm64 + x64）"
-git push origin app-mac-v0.80
+git tag -a app-mac-v0.81 -m "摸鱼工作站 0.81（macOS：arm64 + x64）"
+git push origin app-mac-v0.81
 ```
 
-资产名必须 ASCII（`MoyuWorkbench-0.80.0-arm64.dmg`）；Release 正文里说明一句
+资产名必须 ASCII（`MoyuWorkbench-0.81.0-arm64.dmg`）；Release 正文里说明一句
 「未签名，首次打开需 `xattr -cr` 或右键打开」。完整流程与本地出包命令见
 [`构建与出包.md`](./构建与出包.md) 的「macOS 出包（dmg）」。
 
