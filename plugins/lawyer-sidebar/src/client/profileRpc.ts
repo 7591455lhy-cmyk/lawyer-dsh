@@ -10,7 +10,9 @@
  * 让悬浮窗白屏。
  */
 import type { ConnectionHandle } from '@deepseek-ai/dsh-api-remotes/client'
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
+// 0.1.5 起 ClientContext 直接用 cordis 的 Context（dsh-client-runtime 已改名
+// dsh-client-modules 且不再导出插件面类型）。type-only，编译后擦除。
+import type { Context as ClientContext } from '@deepseek-ai/cordis'
 
 /** 画像状态（Host 侧实时查文件的产物）。 */
 export interface ProfileStatus {

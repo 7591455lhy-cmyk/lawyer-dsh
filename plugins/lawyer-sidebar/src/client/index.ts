@@ -27,7 +27,13 @@
  * 导出纪律与 dsh 官方 Client 插件一致：具名导出 inject + apply，
  * 禁止 export default；跨插件协作走 cordis 服务而非直接 import。
  */
-import type { ClientContext, SessionFace } from '@deepseek-ai/dsh-client-runtime/client'
+// 0.1.5 起客户端类型来源两处搬家：dsh-client-runtime 包已改名
+// dsh-client-modules 且不再导出任何插件面类型，官方插件统一改为
+// ① ClientContext 直接用 cordis 的 Context（见 ui-sidebar / ui-brand-official）；
+// ② SessionFace 从 dsh-api-session-controller/client 取。
+// 两者都是 type-only，编译后被擦除，不需要进 external 清单。
+import type { Context as ClientContext } from '@deepseek-ai/cordis'
+import type { SessionFace } from '@deepseek-ai/dsh-api-session-controller/client'
 // 类型副作用：把 ui-layout 声明的槽位键（shell.overlay）合并进 SlotMap。
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 // 类型副作用：把 ui-sidebar（sidebar.brand.mark/name）与 ui-conversation
@@ -38,7 +44,8 @@ import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 // agentPresets 命名空间）、PromptContentPart 与 FileReferenceCandidate
 // （含 Context.remote 的 fileReferences 命名空间）合并进本模块的编译面。
 import type {
-  ConnectionHandle, FileReferenceCandidate, PromptContentPart, SkillEntry,
+  ConnectionHandle, FileReferenceCandidate, PromptContentPart, SessionId, SkillEntry,
+  WorkspaceId,
 } from '@deepseek-ai/dsh-api-remotes/client'
 import { buildContractReviewPrompt } from './prompt.ts'
 import type { ContractReviewRequest } from './ContractReviewDialog.tsx'
@@ -48,13 +55,9 @@ import { buildDocGenerationPrompt } from './prompt.ts'
 import type { DocGenerationRequest } from './DocGenerationDialog.tsx'
 import { buildCustomEntryPrompt, collectImages } from './prompt.ts'
 import type { CustomEntryRequest } from './CustomEntryDialog.tsx'
-import { buildDemoReplayPrompt, buildProfileInterviewPrompt } from './prompt.ts'
-import { DEMO_ARTIFACTS, hydrateArtifactPaths, type DemoArtifact } from './demoArtifacts.ts'
-// 编译期常量：由 build.ps1 的 --define:__LAWYER_DEMO__=true|false 注入
-// （-NoDemo 出无演示数据版本）。本文件里所有演示回放入口都以它为条件：
-// 常量折叠后 DEMO_ARTIFACTS 的引用随之消失，demoArtifacts.data.ts（131KB
-// 预录 docx base64）才会被 tree-shaking 掉，而不是白白打进包里。
-declare const __LAWYER_DEMO__: boolean
+import { buildProfileInterviewPrompt } from './prompt.ts'
+// 演示数据与 __LAWYER_DEMO__ 编译开关已于 M8.12 一并移除（预录成果
+// demoArtifacts.data.ts、案情文本 demoData.ts 不再随源码分发）。
 import type { PickedImage } from './FilePicker.tsx'
 import { FALLBACK_ENTRIES, normalizeEntries, type LawyerConfig, type LawyerEntry } from './config.ts'
 import { createProfileApi } from './profileRpc.ts'
@@ -1301,7 +1304,11 @@ function applyBranding(ctx: ClientContext): void {
     }
   })
   observer.observe(document.documentElement, { subtree: true, childList: true, characterData: true })
-  ctx.on('dispose', () => { observer.disconnect() })
+  // 清理必须走 ctx.effect：它返回的 disposer 在 fiber dispose 时执行。
+  // 旧写法 ctx.on('dispose', ...) 是无效的——cordis 的 Events 里没有 'dispose'
+  // 这个事件名（vendor/cordis/src/events.ts 只声明 internal/* 系列），监听器注册
+  // 成功但永远不会被触发，observer 实际从未 disconnect（插件重载会累积泄漏）。
+  ctx.effect(() => () => { observer.disconnect() })
 
   // 3) 品牌槽位遮蔽：声明感知注册（不依赖与 ui-sidebar / ui-conversation
   //    的相对加载顺序）。名称槽渲染「摸鱼工作站 + 副标题」横排（容器
@@ -1417,7 +1424,8 @@ function installOfficialKeyHint(ctx: ClientContext): void {
   patch()
   const observer = new MutationObserver(patch)
   observer.observe(document.body, { subtree: true, childList: true, characterData: true })
-  ctx.on('dispose', () => { observer.disconnect() })
+  // 同 applyBranding：'dispose' 不是合法事件名，改用 effect 的 disposer。
+  ctx.effect(() => () => { observer.disconnect() })
 }
 
 /** 路径 token 全局正则：@?"..."（引号内允许空格）｜@?'...'｜@?裸路径｜UNC。 */
@@ -1425,6 +1433,13 @@ const FILE_PATH_TOKEN_RE = /@?"(?:[A-Za-z]:[\\/][^"\n]*|\\\\[^"\n]*)"?|@?'(?:[A-
 
 /** 路径核心形态（剥壳后）：盘符或 UNC 绝对路径。 */
 const FILE_PATH_CORE_RE = /^(?:[A-Za-z]:[\\/].+|\\\\.+)$/su
+
+/**
+ * workspaces.openPath 缺席告警的一次性闸门。0.1.5 的客户端 IWorkspaces 不再
+ * 提供该方法（只剩 Host 内部能力），这条辅助能力需要按「可用则用、不可用则
+ * 只保留视觉标记」降级，但不能每次点击都刷一行告警。
+ */
+let openPathAbsentWarned = false
 
 /** 常见文档/图片/数据扩展名（避免把目录或无扩展串误当文件）。 */
 const FILE_EXT_RE = /\.(?:docx?|pdf|md|txt|xlsx?|pptx?|csv|png|jpe?g|gif|webp|bmp|html?|json|xml|zip|7z|rar|py|js|mjs|cjs|ts|tsx|ps1|bat|cmd|yaml|yml)$/iu
@@ -1518,11 +1533,25 @@ function installChatPathLinks(ctx: ClientContext): void {
         const path = normalizePathToken(match[0])
         if (path !== null) {
           lastOpenAt = Date.now()
-          void ctx.workspaces.openPath(path).catch((error: unknown) => {
-            console.warn(`[lawyer-sidebar] 打开文件失败（${path}）：${
-              error instanceof Error ? error.message : String(error)
-            }`)
-          })
+          // 0.1.5 起 openPath 不再是客户端 IWorkspaces 的公共能力（只剩 Host
+          // 内部能力，浏览器侧无等价服务）。改为运行时探测：缺席时保留可点击
+          // 样式但不跳转，只告警一次，避免每次点击抛 TypeError。
+          const openPath = (ctx.workspaces as { openPath?: (p: string) => Promise<unknown> }).openPath
+          if (typeof openPath !== 'function') {
+            if (!openPathAbsentWarned) {
+              openPathAbsentWarned = true
+              console.warn(
+                '[lawyer-sidebar] workspaces.openPath 不可用（dsh 0.1.5 客户端已移除该能力），' +
+                  '聊天区路径仅保留可点击样式，点击不会打开',
+              )
+            }
+          } else {
+            void openPath.call(ctx.workspaces, path).catch((error: unknown) => {
+              console.warn(`[lawyer-sidebar] 打开文件失败（${path}）：${
+                error instanceof Error ? error.message : String(error)
+              }`)
+            })
+          }
         }
         break
       }
@@ -1548,7 +1577,9 @@ function installChatPathLinks(ctx: ClientContext): void {
     }
   })
   observer.observe(document.body, { subtree: true, childList: true, characterData: true })
-  ctx.on('dispose', () => {
+  // 这里挂的是 DOM 资源（capture 阶段监听器 + observer），必须显式回收；
+  // 用 effect 的 disposer（'dispose' 不是 cordis 的合法事件名，旧写法不生效）。
+  ctx.effect(() => () => {
     document.removeEventListener('click', handleClick, true)
     observer.disconnect()
   })
@@ -1588,6 +1619,16 @@ function normalizeDomainList(raw: unknown): readonly string[] {
 }
 
 /**
+ * uiWorkspace 服务的形状。0.1.5 把工作区目录浏览/创建（listDirectory /
+ * createDirectory）从 IWorkspaces 迁到了这个服务。只声明本项目用到的两个
+ * 方法：该包没有对外导出客户端类型，按鸭子类型收敛。
+ */
+interface UiWorkspaceLike {
+  listDirectory(path?: string, signal?: AbortSignal): Promise<{ home: string }>
+  createDirectory(path: string, name: string): Promise<string>
+}
+
+/**
  * 浏览器半 apply：注入样式，注册槽位占位。
  * @param ctx - 客户端根上下文。
  */
@@ -1597,7 +1638,19 @@ export function apply(ctx: ClientContext): void {
   installOfficialKeyHint(ctx)
   installChatPathLinks(ctx)
 
-  const { api } = ctx.get('connection') as ConnectionHandle
+  // 0.1.5 起 ConnectionHandle 不再提供 `api` 聚合面：各命名空间以独立 Cordis
+  // 服务键 'remote.<namespace>' 注册（与 fileReferences / agentPresets / skills
+  // 同款），运行时一律用 ctx.get 取。旧代码在这里解构 const { api } = connection。
+  // 真正需要 RPC 的地方各自按需取，见 listInstalledSkills 与 selectPreset。
+
+  // 用 ctx.inject 局部获取而非写进顶层的 inject 数组：后者是硬依赖，服务缺席
+  // 会把整个插件停在等待态（侧栏直接不渲染）；前者缺席时回调不执行、引用保持
+  // undefined，由调用方自然降级。代价是首次调用可能早于服务就绪，但本服务的
+  // 唯一用途（兜底建目录）本身就有失败兜底。
+  let uiWorkspace: UiWorkspaceLike | undefined
+  ctx.inject(['uiWorkspace'], (wsCtx: ClientContext) => {
+    uiWorkspace = (wsCtx as unknown as { uiWorkspace?: UiWorkspaceLike }).uiWorkspace
+  })
 
   // ── 入口列表数据源（M4：lawyer-workbench 分节的响应式投影）────────────
   //
@@ -1718,21 +1771,22 @@ export function apply(ctx: ClientContext): void {
    */
   const DEEPSEEK_CREDENTIAL_REFS = ['DEEPSEEK_API_KEY', 'DEEPSEEK_OFFICIAL_API_KEY']
   const deepSeekKeyConfigured = async (): Promise<boolean> => {
-    const credentials = (api as {
-      credentials?: {
-        describe(payload: { refs: readonly string[] }): Promise<{
-          result: {
-            ok: boolean
-            value?: { credentials?: Record<string, { configured?: boolean } | undefined> }
-          }
-        }>
-      }
-    }).credentials
+    // 0.1.5 的三处变化：
+    // ① ConnectionHandle 不再有 api 聚合面 → credentials 走独立服务键
+    //    'remote.credentials'（与 skills / fileReferences / agentPresets 同款）；
+    // ② describe 的入参从对象 { refs } 改为位置参数 refs[]；
+    // ③ 返回从双层 { result: { ok, value } } 改为扁平 RemoteResult，且 value
+    //    直接就是 Record<ref, CredentialInfo>（0.1.1 还多包了一层 .credentials）。
+    // 任何一处对不上都会走 catch/!ok 分支退回 false —— 即「多弹一次引导」，
+    // 这是安全的方向（漏弹才会让用户卡在没有模型的界面上）。
+    const credentials = ctx.get('remote.credentials') as
+      | { describe(refs: readonly string[]): Promise<{ ok: boolean; value?: Record<string, { configured?: boolean } | undefined> }> }
+      | undefined
     if (credentials === undefined || typeof credentials.describe !== 'function') return false
     try {
-      const response = await credentials.describe({ refs: DEEPSEEK_CREDENTIAL_REFS })
-      if (!response.result.ok) return false
-      const described = response.result.value?.credentials ?? {}
+      const response = await credentials.describe(DEEPSEEK_CREDENTIAL_REFS)
+      if (!response.ok) return false
+      const described = response.value ?? {}
       return DEEPSEEK_CREDENTIAL_REFS.some(ref => described[ref]?.configured === true)
     } catch {
       return false
@@ -1775,17 +1829,31 @@ export function apply(ctx: ClientContext): void {
    */
   const selectPreset = async (sessionId: string, preset: string): Promise<boolean> => {
     try {
-      const response = await api.agentPresets.select({ sessionId, agentPreset: preset })
-      if (!response.result.ok) {
+      // 0.1.5 起 agentPresets.select 有三个变化：
+      // ① 入参从对象 { sessionId, agentPreset } 改为位置参数 (sessionId, presetId)；
+      // ② 返回从双层包装 { result: { ok, value, error } } 改为扁平 RemoteResult；
+      // ③ value 从 { agentPreset } 改为生效的 preset id 字符串本身。
+      // 服务键仍是 'remote.<namespace>'，沿用 fileReferences 同款的 ctx.get 取法。
+      const agentPresets = ctx.get('remote.agentPresets') as
+        | { select(sessionId: string, presetId: string): Promise<{ ok: boolean; value?: string; error?: { message?: string } }> }
+        | undefined
+      if (agentPresets === undefined) {
         console.error(
-          `[lawyer-sidebar] 切换到 preset "${preset}" 失败：${response.result.error.message}` +
+          '[lawyer-sidebar] remote.agentPresets 服务不可用，无法切换 preset' +
+            '（0.1.5 起该能力由 agent-presets 插件以 Remote 命名空间注册）',
+        )
+        return false
+      }
+      const response = await agentPresets.select(sessionId, preset)
+      if (!response.ok) {
+        console.error(
+          `[lawyer-sidebar] 切换到 preset "${preset}" 失败：${response.error?.message ?? '未知错误'}` +
             `（preset 需部署到 $DSH_HOME/.agent-presets/${preset}/，运行 debug-web.cmd 可自动部署 lawyer）`,
         )
         return false
       }
-      // 本地标签同步（Host 的 agent-preset/selected 转发事件也会到达，
-      // note 幂等，双写无害）。
-      ctx.sessions.noteAgentPreset(sessionId as never, response.result.value.agentPreset)
+      // 0.1.5 移除了 ctx.sessions.noteAgentPreset；preset 归属改为会话摘要的
+      // projectionValues.agentPreset 投影，由 Host 下发，无需本地补记。
       return true
     } catch (error) {
       console.error(
@@ -1818,12 +1886,20 @@ export function apply(ctx: ClientContext): void {
     preset: string = LAWYER_PRESET,
   ): Promise<void> => {
     if (preset !== '') {
-      const summary = ctx.sessions.list.getSnapshot().byId[sessionId]
-      if (summary === undefined || summary.agentPreset !== preset) {
+      // 0.1.5 起 SessionId / WorkspaceId 是 branded type（编译期才存在的标记，
+      // 运行时仍是字符串）。本插件内部一律按 string 传递，只在跨 dsh API 的
+      // 边界上做一次 cast——比把 string 换成 branded 类型传遍全文件改动小得多。
+      const summary = ctx.sessions.list.getSnapshot().byId[sessionId as SessionId] as
+        | { projectionValues?: { agentPreset?: string | null } }
+        | undefined
+      // 0.1.5 起会话摘要不再有 agentPreset 字段，改由 projectionValues 投影
+      // （null = 未组合任何 preset，undefined = 投影尚未到达）。
+      const currentPreset = summary?.projectionValues?.agentPreset ?? undefined
+      if (summary === undefined || currentPreset !== preset) {
         if (!await selectPreset(sessionId, preset)) return
       }
     }
-    const session = ctx.sessions.binding(sessionId)?.session
+    const session = ctx.sessions.binding(sessionId as SessionId)?.session
     if (session === undefined) {
       console.warn('[lawyer-sidebar] 会话绑定不可用，律师任务指令未注入')
       return
@@ -1854,14 +1930,17 @@ export function apply(ctx: ClientContext): void {
       const currentWs = current !== undefined
         ? wsList.items.find(item => item.sessionIds.includes(current))?.workspaceId
         : undefined
-      target = currentWs ?? wsList.recentWorkspaceId
+      // 0.1.5 移除了 Workspaces 快照的 recentWorkspaceId（降级为 ui-workspace
+      // 内部私有函数，不对外导出）。退化为「按 Host 顺序取第一个工作区」——
+      // 与 dsh 内部 recentWorkspace() 的稳定兜底语义一致。
+      target = currentWs ?? wsList.items[0]?.workspaceId
     }
     if (target === undefined) {
       console.warn('[lawyer-sidebar] 无可用工作区，律师任务指令未注入')
       return
     }
     try {
-      const sessionId = await ctx.sessions.create({ workspaceId: target })
+      const sessionId = await ctx.sessions.create({ workspaceId: target as WorkspaceId })
       await ctx.sessions.open(sessionId)
       await startTaskIn(sessionId, parts, preset)
     } catch (error) {
@@ -1916,10 +1995,18 @@ export function apply(ctx: ClientContext): void {
       let dir: string
       if (typeof preinjected === 'string' && preinjected.length > 0) {
         dir = preinjected
+      } else if (uiWorkspace === undefined) {
+        // 0.1.5 起 listDirectory/createDirectory 不再挂在 IWorkspaces 上，
+        // 而 uiWorkspace 服务缺席（包未加载）时无法浏览目录建子目录。
+        console.warn(
+          '[lawyer-sidebar] uiWorkspace 服务不可用，且无预置工作区目录，跳过兜底工作区创建' +
+            '（插件 package.json 的 dsh.client.inject 需包含 @deepseek-ai/dsh-client-ui-workspace）',
+        )
+        return null
       } else {
-        const listing = await ctx.workspaces.listDirectory()
+        const listing = await uiWorkspace.listDirectory()
         try {
-          dir = await ctx.workspaces.createDirectory(listing.home, FALLBACK_WORKSPACE_DIR_NAME)
+          dir = await uiWorkspace.createDirectory(listing.home, FALLBACK_WORKSPACE_DIR_NAME)
         } catch {
           // 目录已存在（Host 重复创建报错）时退回拼接路径。
           const sep = listing.home.includes('\\') ? '\\' : '/'
@@ -1953,43 +2040,6 @@ export function apply(ctx: ClientContext): void {
       await runWhenSessionReady(parts, workspaceId, preset)
     })()
   }
-
-  /**
-   * 演示回放（M6.3）：部署预录成果文件到工作区（lawyerFiles/save 写
-   * .lawyer-uploads/，uploadWorkspaceFile 有 workspaces[0] 兜底；失败降级
-   * 为提示行不阻塞）→ 新建专属会话注入回放指令——模型把预录成果原样
-   * 作为自己的答复输出，成果以 AI 消息形态呈现，末尾文件路径可点击
-   * 打开（installChatPathLinks）。无工作区时自动建兜底工作区（M6.7）。
-   *
-   * 整体写成条件表达式而不是普通函数：常量折叠时连同 body 里对
-   * buildDemoReplayPrompt / hydrateArtifactPaths 的引用一起消失，
-   * 这两个函数才会被 tree-shaking 掉（普通函数即使没人调用，esbuild 也不会
-   * 删它——demoData.ts 就是这么被顺带留在包里的，见 build.ps1 的注释）。
-   */
-  const replayDemo: ((artifact: DemoArtifact) => void) | undefined = __LAWYER_DEMO__
-    ? (artifact: DemoArtifact): void => {
-    void (async () => {
-      const workspaceId = await ensureFallbackWorkspace()
-      if (workspaceId === null) {
-        console.warn('[lawyer-sidebar] 暂无工作区且自动创建失败，无法回放演示成果——请先手动创建工作区')
-        return
-      }
-      const pathsByFile = new Map<string, string>()
-      for (const file of artifact.files) {
-        const uploaded = await uploadWorkspaceFile(file.fileName, file.contentBase64, new AbortController().signal)
-        if (typeof uploaded === 'string') {
-          pathsByFile.set(file.fileName, uploaded)
-        } else {
-          console.warn(`[lawyer-sidebar] 演示成果文件 ${file.fileName} 部署失败：${uploaded.message}`)
-        }
-      }
-      const promptText = buildDemoReplayPrompt(
-        artifact.title,
-        hydrateArtifactPaths(artifact.markdown, pathsByFile),
-      )
-      await runWhenSessionReady([{ type: 'text', text: promptText }], workspaceId)
-    })()
-  } : undefined
 
   // ── M8 实务画像 ──
   //
@@ -2028,10 +2078,16 @@ export function apply(ctx: ClientContext): void {
     void (async () => {
       const meta = findProfileDomain(domain)
       const status = await profileApi.status(domain, new AbortController().signal)
-      if (meta === undefined || status instanceof Error) {
-        console.warn(
-          `[lawyer-sidebar] 画像访谈未发起：${meta === undefined ? `未知领域 ${domain}` : status.message}`,
-        )
+      // 拆成两条判断而不是一条 `meta === undefined || status instanceof Error`：
+      // TS 无法在 || 的右侧分支里把 status 收窄成 Error（进入该分支可能仅仅因为
+      // meta 为 undefined），于是 status.message 会报 「Property 'message' does
+      // not exist on type 'Error | ProfileStatus'」。拆开后两边都能正确收窄。
+      if (meta === undefined) {
+        console.warn(`[lawyer-sidebar] 画像访谈未发起：未知领域 ${domain}`)
+        return
+      }
+      if (status instanceof Error) {
+        console.warn(`[lawyer-sidebar] 画像访谈未发起：${status.message}`)
         return
       }
       injectTask([{
@@ -2049,11 +2105,6 @@ export function apply(ctx: ClientContext): void {
 
   /** 合同审核表单提交回调：组装指令与附件，新建律师模式会话后注入。 */
   const submitContractReview = (request: ContractReviewRequest): void => {
-    if (__LAWYER_DEMO__ && request.demoReplay === true) {
-      const artifact = DEMO_ARTIFACTS['contract-review']
-      if (artifact !== undefined) { replayDemo?.(artifact); return }
-      console.warn('[lawyer-sidebar] 合同审核的预录成果尚未固化，本次按真实任务执行')
-    }
     void (async () => {
       const profile = await profileStatusOf('commercial-legal')
       injectTask(withImages(buildContractReviewPrompt(request, profile), request.images))
@@ -2062,11 +2113,6 @@ export function apply(ctx: ClientContext): void {
 
   /** 案件分析表单提交回调：同上（/case-analysis 手势）。 */
   const submitCaseAnalysis = (request: CaseAnalysisRequest): void => {
-    if (__LAWYER_DEMO__ && request.demoReplay === true) {
-      const artifact = DEMO_ARTIFACTS['case-analysis']
-      if (artifact !== undefined) { replayDemo?.(artifact); return }
-      console.warn('[lawyer-sidebar] 案件分析的预录成果尚未固化，本次按真实任务执行')
-    }
     void (async () => {
       const profile = await profileStatusOf('litigation-legal')
       injectTask(withImages(buildCaseAnalysisPrompt(request, profile), request.images))
@@ -2075,11 +2121,6 @@ export function apply(ctx: ClientContext): void {
 
   /** 文书生成表单提交回调：同上（/doc-generation 手势）。 */
   const submitDocGeneration = (request: DocGenerationRequest): void => {
-    if (__LAWYER_DEMO__ && request.demoReplay === true) {
-      const artifact = DEMO_ARTIFACTS[`doc:${request.docType}`]
-      if (artifact !== undefined) { replayDemo?.(artifact); return }
-      console.warn(`[lawyer-sidebar] ${request.docType} 的预录成果尚未固化，本次按真实任务执行`)
-    }
     void (async () => {
       const profile = await profileStatusOf('litigation-legal')
       injectTask(withImages(buildDocGenerationPrompt(request, profile), request.images))
@@ -2131,8 +2172,12 @@ export function apply(ctx: ClientContext): void {
   const listInstalledSkills = (): Promise<readonly SkillEntry[] | undefined> => {
     const sessionId = ctx.sessions.list.getSnapshot().current
     if (sessionId === undefined) return Promise.resolve(undefined)
-    return api.skills.list({ sessionId }).then(
-      result => result.ok ? result.value.skills : undefined,
+    const skills = ctx.get('remote.skills') as
+      | { list(request: { sessionId: string }, signal?: AbortSignal): Promise<{ ok: boolean; value?: { skills: readonly SkillEntry[] } }> }
+      | undefined
+    if (skills === undefined) return Promise.resolve(undefined)
+    return skills.list({ sessionId }).then(
+      result => result.ok ? result.value?.skills : undefined,
       () => undefined,
     )
   }
@@ -2151,13 +2196,13 @@ export function apply(ctx: ClientContext): void {
   ): Promise<string | Error> => {
     // 写入目录取当前工作区：优先当前会话所属工作区，退回第一个工作区。
     const sessions = ctx.sessions.list.getSnapshot()
-    const currentSession = sessions.current !== undefined
-      ? sessions.byId[sessions.current]
-      : undefined
     const workspaces = ctx.workspaces.list.getSnapshot().items
-    const workspace = workspaces.find(
-      item => currentSession !== undefined && item.workspaceId === currentSession.workspaceId,
-    ) ?? workspaces[0]
+    // 会话摘要从来没有 workspaceId 字段（0.1.1 与 0.1.5 的 SessionSummary 都
+    // 没有），旧写法恒为 undefined、每次都退化到 workspaces[0]。归属要从工作区
+    // 侧的 sessionIds 反查才可靠。
+    const workspace = (sessions.current !== undefined
+      ? workspaces.find(item => item.sessionIds.includes(sessions.current as SessionId))
+      : undefined) ?? workspaces[0]
     if (workspace === undefined) return Promise.resolve(new Error('暂无工作区，无法上传合同文件'))
 
     const { rpc } = ctx.get('connection') as ConnectionHandle & {

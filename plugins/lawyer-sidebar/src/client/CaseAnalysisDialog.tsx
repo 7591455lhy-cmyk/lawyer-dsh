@@ -10,10 +10,6 @@ import {
   EMPTY_FILE_PICKER_VALUE, FilePicker, type FilePickerValue,
 } from './FilePicker.tsx'
 import type { FilePickerPropsLike } from './ContractReviewDialog.tsx'
-// 编译期常量：由 build.ps1 的 --define:__LAWYER_DEMO__=true|false 注入
-// （-NoDemo 出无演示数据版本）。见 ContractReviewDialog.tsx 的同名声明。
-declare const __LAWYER_DEMO__: boolean
-import { CASE_ANALYSIS_DEMO } from './demoData.ts'
 
 /** 分析模块键（与 case-analysis SKILL.md 的分析流程一一对应）。 */
 export type AnalysisFocus = 'facts' | 'relations' | 'issues' | 'evidence' | 'claims' | 'risk'
@@ -26,8 +22,6 @@ export interface CaseAnalysisRequest {
   readonly paths: readonly string[]
   readonly images: FilePickerValue['images']
   readonly texts: FilePickerValue['texts']
-  /** 演示回放标记（M6.3）：载入演示数据后提交 = 直接展示预录成果。 */
-  readonly demoReplay?: boolean
 }
 
 /** 立场选项（决定风险评估视角）。 */
@@ -73,26 +67,6 @@ export function CaseAnalysisDialog({
   const [focus, setFocus] = useState<readonly AnalysisFocus[]>(FOCUS_OPTIONS.map(option => option.key))
   const [files, setFiles] = useState<FilePickerValue>(EMPTY_FILE_PICKER_VALUE)
   const [busy, setBusy] = useState(false)
-  /** 载入演示数据后的提示文案（空串即未载入）。 */
-  const [demoNotice, setDemoNotice] = useState('')
-  /** 演示回放开关（载入演示数据即 armed；提交走预录成果回放）。 */
-  const [demoArmed, setDemoArmed] = useState(false)
-  /** 提交按钮的「（演示回放）」后缀：见 ContractReviewDialog.tsx 的同款注释。 */
-  const replaySuffix = __LAWYER_DEMO__ && demoArmed ? '（演示回放）' : ''
-
-  /**
-   * 一键载入演示数据（覆盖当前已填内容）。三份案情材料（起诉状 + 合同
-   * 条款与对账记录 + 微信记录与往来函件）以文本材料形态内嵌，载入后
-   * 直接点击"开始分析"即可产出六模块完整分析报告。
-   */
-  // 条件表达式而非函数体内 if：见 ContractReviewDialog.tsx 的同款注释。
-  const loadDemo: (() => void) | undefined = __LAWYER_DEMO__ ? (): void => {
-    setStance(CASE_ANALYSIS_DEMO.stance)
-    setFocus(CASE_ANALYSIS_DEMO.focus)
-    setFiles({ paths: [], images: [], texts: CASE_ANALYSIS_DEMO.texts })
-    setDemoArmed(true)
-    setDemoNotice(`已载入「${CASE_ANALYSIS_DEMO.label}」，点击"开始分析"将直接展示预录成果`)
-  } : undefined
 
   const toggleFocus = (key: AnalysisFocus, checked: boolean): void => {
     setFocus(current => checked
@@ -108,7 +82,6 @@ export function CaseAnalysisDialog({
       paths: files.paths,
       images: files.images,
       texts: files.texts,
-      ...(demoArmed ? { demoReplay: true } : {}),
     })
   }
 
@@ -133,21 +106,6 @@ export function CaseAnalysisDialog({
             ✕
           </button>
         </div>
-
-        {__LAWYER_DEMO__ && (
-          <div className="lawyer-dialog__demo">
-            <button
-              type="button"
-              className="lawyer-dialog__demo-btn"
-              onClick={loadDemo}
-              disabled={busy}
-              title={`填充演示数据（${CASE_ANALYSIS_DEMO.label}）——覆盖当前已填内容，载入后可直接开始分析`}
-            >
-              ⚡ 载入演示数据
-            </button>
-            {demoNotice !== '' && <span className="lawyer-dialog__demo-hint">{demoNotice}</span>}
-          </div>
-        )}
 
         <label className="lawyer-dialog__label" htmlFor="lawyer-case-stance">我方立场</label>
         <select
@@ -195,7 +153,7 @@ export function CaseAnalysisDialog({
             取消
           </button>
           <button type="button" className="lawyer-dialog__submit" onClick={submit} disabled={busy}>
-            {busy ? '正在发起…' : `开始分析${replaySuffix}`}
+            {busy ? '正在发起…' : '开始分析'}
           </button>
         </div>
       </div>

@@ -499,30 +499,4 @@ export function collectImages(values: CustomFieldValues): readonly PickedImage[]
   return images
 }
 
-/**
- * 演示回放指令（M6.3）：演示模式下不重新执行任务，而是让模型把预录的
- * 真实运行成果**原样作为自己的答复输出**——成果以 AI 消息形态出现在
- * 对话框（与真实运行的呈现完全一致），末尾的成果文件路径交给聊天区
- * 的路径点击支持（client/index.ts）直接打开。预录成果由真实 API 运行
- * 后固化在 demoArtifacts.ts。
- * @param title - 演示场景标题（如"合同审核"）。
- * @param artifactMarkdown - 预录成果全文（Markdown，含成果文件路径行）。
- * @returns 指令文本。
- */
-export function buildDemoReplayPrompt(title: string, artifactMarkdown: string): string {
-  return [
-    `演示回放：${title}`,
-    '',
-    '以下为系统预录的演示运行成果（真实 API 运行固化数据，本次为回放模式，无需重新执行）。请把它作为你的最终答复**原样输出**：',
-    '- 不添加任何开场白、结语或解释；',
-    '- 不重新分析、不调用任何工具；',
-    '- 保留全部标题、列表与文件路径；',
-    '- 文件路径行保留原样（用户可点击打开）。',
-    '',
-    '---预录成果开始---',
-    '',
-    artifactMarkdown,
-    '',
-    '---预录成果结束---',
-  ].join('\n')
-}
+// 演示回放指令（buildDemoReplayPrompt）已随演示数据一并移除（M8.12）。

@@ -11,10 +11,6 @@ import {
   EMPTY_FILE_PICKER_VALUE, FilePicker, type FilePickerValue,
 } from './FilePicker.tsx'
 import type { FilePickerPropsLike } from './ContractReviewDialog.tsx'
-// 编译期常量：由 build.ps1 的 --define:__LAWYER_DEMO__=true|false 注入
-// （-NoDemo 出无演示数据版本）。见 ContractReviewDialog.tsx 的同名声明。
-declare const __LAWYER_DEMO__: boolean
-import { DOC_GENERATION_DEMOS } from './demoData.ts'
 
 /** 文书类型。 */
 export type DocType = '民事起诉状' | '民事答辩状' | '代理词' | '法律意见书'
@@ -32,8 +28,6 @@ export interface DocGenerationRequest {
   readonly paths: readonly string[]
   readonly images: FilePickerValue['images']
   readonly texts: FilePickerValue['texts']
-  /** 演示回放标记（M6.3）：载入演示数据后提交 = 直接展示预录成果。 */
-  readonly demoReplay?: boolean
 }
 
 /** 文书类型展示定义。 */
@@ -72,36 +66,6 @@ export function DocGenerationDialog({
   const [notes, setNotes] = useState('')
   const [files, setFiles] = useState<FilePickerValue>(EMPTY_FILE_PICKER_VALUE)
   const [busy, setBusy] = useState(false)
-  /** 载入演示数据后的提示文案（空串即未载入）。 */
-  const [demoNotice, setDemoNotice] = useState('')
-  /** 演示回放开关（载入演示数据即 armed；提交走预录成果回放）。 */
-  const [demoArmed, setDemoArmed] = useState(false)
-  /** 提交按钮的「（演示回放）」后缀：见 ContractReviewDialog.tsx 的同款注释。 */
-  const replaySuffix = __LAWYER_DEMO__ && demoArmed ? '（演示回放）' : ''
-
-  /**
-   * 当前文书类型对应的演示数据名（四种类型各一套独立案情）。
-   *
-   * 刻意写成条件表达式而不是模块级 `const demo = DOC_GENERATION_DEMOS[...]`：
-   * 常量折叠后这条引用会连着三元一起消失，demoData.ts 才能被 tree-shaking
-   * 掉（模块级 const 即使只被删除的 JSX 用到，也未必会被判定为死代码）。
-   */
-  const demoLabel = __LAWYER_DEMO__ ? DOC_GENERATION_DEMOS[docType].label : ''
-
-  /**
-   * 一键载入当前文书类型的演示数据（覆盖当前已填内容；切换类型后再次
-   * 点击即载入新类型的那套数据）。案情材料以文本形态内嵌，载入后直接
-   * 点击"开始生成"即可产出对应文书。
-   */
-  // 条件表达式而非函数体内 if：见 ContractReviewDialog.tsx 的同款注释。
-  const loadDemo: (() => void) | undefined = __LAWYER_DEMO__ ? (): void => {
-    const demo = DOC_GENERATION_DEMOS[docType]
-    setPartyRole(demo.partyRole)
-    setNotes(demo.notes)
-    setFiles({ paths: [], images: [], texts: demo.texts })
-    setDemoArmed(true)
-    setDemoNotice(`已载入「${demo.label}」，点击"开始生成"将直接展示预录成果`)
-  } : undefined
 
   const submit = (): void => {
     setBusy(true)
@@ -112,7 +76,6 @@ export function DocGenerationDialog({
       paths: files.paths,
       images: files.images,
       texts: files.texts,
-      ...(demoArmed ? { demoReplay: true } : {}),
     })
   }
 
@@ -138,21 +101,6 @@ export function DocGenerationDialog({
           </button>
         </div>
 
-        {__LAWYER_DEMO__ && (
-          <div className="lawyer-dialog__demo">
-            <button
-              type="button"
-              className="lawyer-dialog__demo-btn"
-              onClick={loadDemo}
-              disabled={busy}
-              title={`填充当前文书类型的演示数据（${demoLabel}）——覆盖当前已填内容；切换文书类型后再次点击即载入对应演示`}
-            >
-              ⚡ 载入演示数据 · {demoLabel}
-            </button>
-            {demoNotice !== '' && <span className="lawyer-dialog__demo-hint">{demoNotice}</span>}
-          </div>
-        )}
-
         <span className="lawyer-dialog__label">文书类型</span>
         <div className="lawyer-dialog__strictness" role="radiogroup" aria-label="文书类型">
           {DOC_TYPES.map(option => (
@@ -161,12 +109,7 @@ export function DocGenerationDialog({
                 type="radio"
                 name="lawyer-doc-type"
                 checked={docType === option.type}
-                onChange={() => {
-                  setDocType(option.type)
-                  // 已载入的演示数据对应旧类型，切换后提示失效，清除提示
-                  //（材料/说明保留，用户可再次点击载入新类型的演示）。
-                  setDemoNotice('')
-                }}
+                onChange={() => { setDocType(option.type) }}
                 disabled={busy}
               />
               <span>
@@ -219,7 +162,7 @@ export function DocGenerationDialog({
             取消
           </button>
           <button type="button" className="lawyer-dialog__submit" onClick={submit} disabled={busy}>
-            {busy ? '正在发起…' : `开始生成${replaySuffix}`}
+            {busy ? '正在发起…' : '开始生成'}
           </button>
         </div>
       </div>

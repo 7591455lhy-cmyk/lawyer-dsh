@@ -11,7 +11,9 @@
  * 失败一律降级为 Error 对象而非抛出——引导弹窗要能把错误显示在界面上。
  */
 import type { ConnectionHandle } from '@deepseek-ai/dsh-api-remotes/client'
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
+// 0.1.5 起 ClientContext 直接用 cordis 的 Context（dsh-client-runtime 已改名
+// dsh-client-modules 且不再导出插件面类型）。type-only，编译后擦除。
+import type { Context as ClientContext } from '@deepseek-ai/cordis'
 
 /** verify 结果码（Host 侧 VerifyCode 的 Client 副本）。 */
 export type VerifyCode =

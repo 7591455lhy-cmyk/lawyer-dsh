@@ -57,8 +57,7 @@ smoke-test*
 .check-*.mjs
 # 上一条把常驻自检脚本本身也一起忽略了 —— 它们是发布前必跑的校验，必须入库
 !.check-pkg.mjs
-!.check-nodemo.mjs
-!.check-demo-build.mjs
+!.check-mac-pkg.mjs
 !.check-portal.mjs
 
 # ===== 早期 pnpm 装配实验残留（.link-test / .link-test2 / .link-test3）=====
